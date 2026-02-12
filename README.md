@@ -35,17 +35,11 @@ Dieses Projekt bietet eine Pipeline zur Extraktion, Analyse und Bewertung von Ba
 
 ## Nutzung
 
-1. **IFC-Datei exportieren:**  
- `python run_ifc_sbert_pipeline.py`  
- → Wähle eine IFC-Datei aus, die Pipeline erzeugt `.jsonl` und führt das Matching durch.
-
-2. **Ökobilanz berechnen:**  
- `python calculate_ubp21_per_element.py`  
- → Wähle die `.jsonl`-Datei, Ergebnisse werden als SQLite exportiert.
-
-3. **Dashboard starten:**  
+1. **Dashboard starten:**  
  `streamlit run Dashboard/app_with_viewer.py`  
  → Web-App für Upload, Matching, Visualisierung und Viewer.
+
+2. **Wähle IFC-Datei**
 
 ## Hinweise
 
