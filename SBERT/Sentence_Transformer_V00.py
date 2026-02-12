@@ -18,7 +18,7 @@ MODEL_NAME = "all-MiniLM-L6-v2"  # Change model name here
 _BASE_DIR = Path(__file__).resolve().parent
 MODEL_DIRECTORY = str(_BASE_DIR / "models" / MODEL_NAME)
 
-TOP_K_RESULTS = 5
+TOP_K_RESULTS = 10
 SIMILARITY_FUNCTION = SimilarityFunction.COSINE  # Alternatives: DOT_PRODUCT, EUCLIDEAN, MANHATTAN
 
 # For tiny workloads (e.g., 90 short strings), CPU is often faster overall due to CUDA init overhead.

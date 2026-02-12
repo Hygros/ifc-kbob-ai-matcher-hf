@@ -13,6 +13,8 @@ MODEL_DIRECTORY = f"./models/{MODEL_NAME}"
 TOP_K_RESULTS = 10
 SIMILARITY_FUNCTION = SimilarityFunction.COSINE  # Alternatives: DOT_PRODUCT, EUCLIDEAN, MANHATTAN
 
+SBERT_DEVICE = os.environ.get("SBERT_DEVICE", "").strip().lower()
+
 EXAMPLE_QUERIES = [
     "IfcPile BORED Betonpfahl Beton Pfahlreihe Süd 900 Ortbeton",
     "Ortbeton IfcPile BORED Betonpfahl Beton Pfahlreihe Süd 900",
@@ -35,7 +37,10 @@ def fetch_materials_from_db(connection: sqlite3.Connection) -> List[str]:
 
 # --- Load or Save Model ---
 def load_or_save_model() -> SentenceTransformer:
-    device = "cuda" if torch.cuda.is_available() else "cpu"
+    if SBERT_DEVICE in {"cpu", "cuda"}:
+        device = SBERT_DEVICE
+    else:
+        device = "cpu" if torch.cuda.is_available() else "cpu"
     if os.path.isdir(MODEL_DIRECTORY) and os.listdir(MODEL_DIRECTORY):
         return SentenceTransformer(MODEL_DIRECTORY, device=device)
     model = SentenceTransformer(MODEL_NAME, device=device)

@@ -11,9 +11,6 @@ venv/
 # VS Code settings
 .vscode/
 
-# MacOS
-.DS_Store
-
 # Windows
 Thumbs.db
 ehthumbs.db
