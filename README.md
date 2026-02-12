@@ -55,4 +55,4 @@ Dieses Projekt bietet eine Pipeline zur Extraktion, Analyse und Bewertung von Ba
 
 ## Lizenz
 
-Dieses Projekt ist für Forschungs- und Lehrzwecke bestimmt.
+Noch ergänzen
