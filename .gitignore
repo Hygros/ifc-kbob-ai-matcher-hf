@@ -62,6 +62,7 @@ coverage.xml
 .streamlit/
 static/
 data/
+.cache_material_index/
 
 # Node.js (falls JS-Viewer)
 node_modules/
