@@ -1,0 +1,46 @@
+[
+  {
+    "GlobalId": "35c5$nctbCUxAM9eteAbDJ",
+    "IfcEntity": "IfcFooting",
+    "PredefinedType": "STRIP_FOOTING",
+    "Name": "Fundament",
+    "Description": "300*600",
+    "Material": "C30/37",
+    "ConnectedTo": [],
+    "HasCoverings": [],
+    "Volume": null
+  },
+  {
+    "GlobalId": "21icvTiS59VxQSGE9oD0GN",
+    "IfcEntity": "IfcElementAssembly",
+    "PredefinedType": null,
+    "Name": "Fundament",
+    "Description": null,
+    "Material": null,
+    "ConnectedTo": [],
+    "HasCoverings": [],
+    "Volume": null
+  },
+  {
+    "GlobalId": "2qIweDq252OvQwWA1wWkvI",
+    "IfcEntity": "IfcReinforcingBar",
+    "PredefinedType": "SHEAR",
+    "Name": "Längs",
+    "Description": null,
+    "Material": "Undefined",
+    "ConnectedTo": [],
+    "HasCoverings": [],
+    "Volume": null
+  },
+  {
+    "GlobalId": "3xPvEd4gj0M8cDm6tp840F",
+    "IfcEntity": "IfcReinforcingBar",
+    "PredefinedType": "SHEAR",
+    "Name": "Bügel",
+    "Description": null,
+    "Material": "B500B",
+    "ConnectedTo": [],
+    "HasCoverings": [],
+    "Volume": null
+  }
+]

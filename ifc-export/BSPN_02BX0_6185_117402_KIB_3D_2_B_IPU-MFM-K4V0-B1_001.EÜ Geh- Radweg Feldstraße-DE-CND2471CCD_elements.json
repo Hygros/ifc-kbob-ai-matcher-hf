@@ -1,0 +1,156 @@
+[
+  {
+    "GlobalId": "2VmDBWGAf8KRciECk9vMY6",
+    "IfcEntity": "IfcBeam",
+    "PredefinedType": "BEAM",
+    "Name": "Kappe",
+    "Description": null,
+    "Material": "Beton, C35/45",
+    "ConnectedTo": [],
+    "HasCoverings": [],
+    "Volume": 17.441139861735635
+  },
+  {
+    "GlobalId": "2VmDBWGAf8KRciECk9vMY_",
+    "IfcEntity": "IfcBeam",
+    "PredefinedType": "BEAM",
+    "Name": "Balken",
+    "Description": null,
+    "Material": "Beton, C35/45",
+    "ConnectedTo": [],
+    "HasCoverings": [],
+    "Volume": 3.510008618167204
+  },
+  {
+    "GlobalId": "2VmDBWGAf8KRciECk9vMYs",
+    "IfcEntity": "IfcBeam",
+    "PredefinedType": "BEAM",
+    "Name": "Balken",
+    "Description": null,
+    "Material": "Beton, C35/45",
+    "ConnectedTo": [],
+    "HasCoverings": [],
+    "Volume": 3.510008618167189
+  },
+  {
+    "GlobalId": "22B5wkYT9CghZIl$4qmcih",
+    "IfcEntity": "IfcCovering",
+    "PredefinedType": "FLOORING",
+    "Name": "Bodenbelag",
+    "Description": null,
+    "Material": "Mauerwerk - Betonstein",
+    "ConnectedTo": [],
+    "HasCoverings": [],
+    "Volume": 21.917342759263658
+  },
+  {
+    "GlobalId": "2VmDBWGAf8KRciECk9vMYC",
+    "IfcEntity": "IfcFooting",
+    "PredefinedType": "PAD_FOOTING",
+    "Name": "Einzelfundament",
+    "Description": null,
+    "Material": "Beton, C35/45",
+    "ConnectedTo": [],
+    "HasCoverings": [],
+    "Volume": 11.712372804993162
+  },
+  {
+    "GlobalId": "2VmDBWGAf8KRciECk9vMYB",
+    "IfcEntity": "IfcFooting",
+    "PredefinedType": "PAD_FOOTING",
+    "Name": "Einzelfundament",
+    "Description": null,
+    "Material": "Beton, C35/45",
+    "ConnectedTo": [],
+    "HasCoverings": [],
+    "Volume": 11.712372804993246
+  },
+  {
+    "GlobalId": "22B5wkYT9CghZIl$4qmclL",
+    "IfcEntity": "IfcFooting",
+    "PredefinedType": "PAD_FOOTING",
+    "Name": "Bodenplatte",
+    "Description": null,
+    "Material": "Beton, C35/45 WU",
+    "ConnectedTo": [],
+    "HasCoverings": [],
+    "Volume": 20.762927525023162
+  },
+  {
+    "GlobalId": "2VmDBWGAf8KRciECk9vMYL",
+    "IfcEntity": "IfcRoof",
+    "PredefinedType": "FLAT_ROOF",
+    "Name": "Geschossdecke",
+    "Description": null,
+    "Material": "Beton, C35/45 WU",
+    "ConnectedTo": [],
+    "HasCoverings": [],
+    "Volume": null
+  },
+  {
+    "GlobalId": "2VmDBWGAf8KRciECk9vMY2",
+    "IfcEntity": "IfcRoof",
+    "PredefinedType": "FLAT_ROOF",
+    "Name": "Dach",
+    "Description": null,
+    "Material": "Beton, C35/45 WU",
+    "ConnectedTo": [],
+    "HasCoverings": [],
+    "Volume": null
+  },
+  {
+    "GlobalId": "2VmDBWGAf8KRciECk9vMYM",
+    "IfcEntity": "IfcWall",
+    "PredefinedType": "SOLIDWALL",
+    "Name": "Massivwand",
+    "Description": null,
+    "Material": "Beton, C35/45 WU",
+    "ConnectedTo": [],
+    "HasCoverings": [],
+    "Volume": 16.493344466005205
+  },
+  {
+    "GlobalId": "2VmDBWGAf8KRciECk9vMYN",
+    "IfcEntity": "IfcWall",
+    "PredefinedType": "SOLIDWALL",
+    "Name": "Massivwand",
+    "Description": null,
+    "Material": "Beton, C35/45 WU",
+    "ConnectedTo": [],
+    "HasCoverings": [],
+    "Volume": 16.470790540844636
+  },
+  {
+    "GlobalId": "2VmDBWGAf8KRciECk9vMYD",
+    "IfcEntity": "IfcWall",
+    "PredefinedType": "USERDEFINED",
+    "Name": "Flügelwand",
+    "Description": null,
+    "Material": "Beton, C35/45",
+    "ConnectedTo": [],
+    "HasCoverings": [],
+    "Volume": 23.741166261503242
+  },
+  {
+    "GlobalId": "2VmDBWGAf8KRciECk9vMY8",
+    "IfcEntity": "IfcWall",
+    "PredefinedType": "USERDEFINED",
+    "Name": "Flügelwand",
+    "Description": null,
+    "Material": "Beton, C35/45",
+    "ConnectedTo": [],
+    "HasCoverings": [],
+    "Volume": 23.76252429449106
+  },
+  {
+    "GlobalId": "2VmDBWGAf8KRciECk9vMYE",
+    "IfcEntity": "IfcCableCarrierSegment",
+    "PredefinedType": "CABLETRUNKINGSEGMENT",
+    "Name": "Kabeltrog",
+    "Description": null,
+    "Material": "Betonfertigteil",
+    "ConnectedTo": [],
+    "HasCoverings": [],
+    "Volume": null
+  }
+]
