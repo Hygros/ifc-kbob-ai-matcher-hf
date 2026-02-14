@@ -18,7 +18,7 @@ MODEL_NAME = "all-MiniLM-L6-v2"  # Change model name here
 _BASE_DIR = Path(__file__).resolve().parent
 MODEL_DIRECTORY = str(_BASE_DIR / "models" / MODEL_NAME)
 
-TOP_K_RESULTS = 10
+TOP_K_RESULTS = 30
 SIMILARITY_FUNCTION = SimilarityFunction.COSINE  # Alternatives: DOT_PRODUCT, EUCLIDEAN, MANHATTAN
 
 # For tiny workloads (e.g., 90 short strings), CPU is often faster overall due to CUDA init overhead.
@@ -55,6 +55,7 @@ IFC_EXPORT_FIELDS = [
     "PredefinedType",
     "Name",
     "Material",
+    "Description",
     "comment",
     "Durchmesser",
     "CastingMethod",
@@ -111,7 +112,7 @@ def ifc_entry_to_string(entry: dict) -> str:
         val = entry.get(field, "")
         if isinstance(val, list):
             val = ", ".join(str(v) for v in val if v)
-        if val is not None and str(val).strip() != "" and str(val).strip() != "NOTDEFINED":
+        if val is not None and str(val).strip() != "" and str(val).strip() != "NOTDEFINED" and str(val).strip() != "Undefined":
             values.append(str(val).strip())
     return " ".join(values)
 
@@ -155,12 +156,12 @@ def find_most_similar_db_entries(jsonl_path: str):
             for h in top
         ]
 
-        print(f"Query: {query_text}")
-        for rank, h in enumerate(top, 1):
-            mat = materials[int(h["corpus_id"])]
-            score = float(h["score"])
-            print(f"  {rank}. {mat} (Score={score:.3f})")
-        print()
+    print(f"Query: {query_text}")
+    for rank, h in enumerate(top[:10], 1):
+        mat = materials[int(h["corpus_id"])]
+        score = float(h["score"])
+        print(f"  {rank}. {mat} (Score={score:.3f})")
+    print()
 
     # Überschreibe die JSONL-Datei mit den neuen Feldern
     with open(jsonl_path, "w", encoding="utf-8") as f:

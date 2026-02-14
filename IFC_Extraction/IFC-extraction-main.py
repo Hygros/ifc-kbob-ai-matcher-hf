@@ -98,6 +98,7 @@ if __name__ == "__main__":
     # Definiere, welche Eigenschaften aus den PropertySets extrahiert werden sollen
     property_fields = [
         "comment",
+        "Description",
         "Status",
         "Durchmesser",
         "CastingMethod",
@@ -118,6 +119,7 @@ if __name__ == "__main__":
         "Name",
         "Material",
         "comment",
+        "Description",
         "Durchmesser",
         "CastingMethod",
         "StructuralClass",
@@ -140,6 +142,7 @@ if __name__ == "__main__":
         name = getattr(element, 'Name', None)
         predefined_type = getattr(element, 'PredefinedType', None)
         guid = element.GlobalId if hasattr(element, 'GlobalId') else None
+        description = getattr(element, "Description", None)
         extracted_properties = extract_fields_from_psets(property_sets, property_fields)
         # Konvertiere relevante Felder
         for key in ["Length", "NetVolume", "Durchmesser"]:
@@ -152,6 +155,7 @@ if __name__ == "__main__":
             "IfcEntity": ifc_entity,
             "PredefinedType": predefined_type,
             "Name": name,
+            "Description": description,
             "Material": material_names,
             "GUID": guid,
             **filtered_properties

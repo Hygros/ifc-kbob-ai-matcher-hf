@@ -380,12 +380,18 @@ def _normalize_top_k_matches(matches) -> list[dict]:
             except (TypeError, ValueError):
                 score = None
         normalized.append({"material": material, "score": score})
-    normalized.sort(key=lambda item: (str(item.get("material") or ""), item.get("score") if item.get("score") is not None else -1.0))
+    normalized.sort(
+        key=lambda item: (
+            item.get("score") is None,
+            -(item.get("score") if item.get("score") is not None else float("-inf")),
+            str(item.get("material") or "").lower(),
+        )
+    )
     return normalized
 
 
 def build_ai_mapping_groups(base_df: pd.DataFrame) -> list[dict]:
-    fields = ["IfcEntity", "PredefinedType", "Name", "comment", "Durchmesser"]
+    fields = ["IfcEntity", "PredefinedType", "Name", "Description", "Material", "Durchmesser"]
     groups: dict[tuple, dict] = {}
     for _, row in base_df.iterrows():
         row_dict = row.to_dict()
@@ -459,7 +465,7 @@ with right:
 
 # Tabs
 
-# New: AI-Mapping Tab
+
 tab_uploads, tab_ai_mapping, tab_charts = st.tabs(["Uploads", "AI-Mapping", "Charts"])
 
 with tab_uploads:
@@ -640,7 +646,7 @@ with tab_ai_mapping:
         with left_col:
             active_guid = st.session_state.get("viewer_selected_guid") if isinstance(st.session_state.get("viewer_selected_guid"), str) else None
             # Prepare base columns and matches
-            base_cols = ["IfcEntity","PredefinedType","Name","GUID","comment","Durchmesser","top_k_matches"]
+            base_cols = ["IfcEntity","PredefinedType","Name","GUID","Description","Material","Durchmesser","top_k_matches"]
             # Defensive: check if df is not None and has columns
             if df is not None and hasattr(df, 'columns'):
                 for col in base_cols:
@@ -721,19 +727,42 @@ with tab_ai_mapping:
                     continue
                 primary_guid = guids[0]
                 def is_valid(val):
-                    sval = str(val).strip().lower() if val is not None else ""
-                    return val is not None and sval != "" and sval != "nan" and sval != "notdefined"
+                    if val is None:
+                        return False
+                    sval = str(val).strip()
+                    if not sval:
+                        return False
+                    normalized = re.sub(r"[\s_\-]+", "", sval).lower()
+                    invalid_tokens = {
+                        "nan",
+                        "none",
+                        "null",
+                        "undefined",
+                        "notdefined",
+                        "n/a",
+                        "na",
+                        "-",
+                    }
+                    return normalized not in invalid_tokens
+
+                def format_label_value(val):
+                    if isinstance(val, list):
+                        cleaned = [str(item).strip() for item in val if item is not None and str(item).strip()]
+                        return ", ".join(cleaned)
+                    return str(val).strip()
+
                 label_parts = []
-                for key in ["IfcEntity", "PredefinedType", "Name", "comment"]:
+                for key in ["IfcEntity", "PredefinedType", "Name", "Description", "Material"]:
                     val = r.get(key)
-                    if is_valid(val):
-                        label_parts.append(str(val))
+                    formatted_val = format_label_value(val)
+                    if is_valid(formatted_val):
+                        label_parts.append(formatted_val)
                 durchmesser = r.get("Durchmesser")
                 if is_valid(durchmesser):
                     label_parts.append(f"Ø {durchmesser}")
                 element_label = " | ".join(label_parts)
                 if len(guids) > 1:
-                    element_label = f"{element_label} ({len(guids)} Elemente)"
+                    element_label = f"{element_label} <span style='color: #999;'>({len(guids)} Elemente)</span>"
                 is_active = bool(active_guid) and active_guid in guids
                 active_style = "background-color: #fff3cd; padding: 0.15rem 0.35rem; border-radius: 4px;" if is_active else ""
                 st.markdown(
@@ -811,7 +840,7 @@ with tab_ai_mapping:
                         st.session_state["data"] = df_new
                         if ubp_db_path:
                             st.session_state["ubp_db_path"] = ubp_db_path
-                        base_cols = ["IfcEntity","PredefinedType","Name","GUID","comment","Durchmesser","top_k_matches"]
+                        base_cols = ["IfcEntity","PredefinedType","Name","GUID","Description","Material","Durchmesser","top_k_matches"]
                         for col in base_cols:
                             if col not in df_new.columns:
                                 df_new[col] = None
@@ -827,7 +856,7 @@ with tab_ai_mapping:
             merge_cols = [c for c in ["GUID", "Material KBOB", "AI Score"] if c in sel_df.columns]
             merged = base.merge(sel_df[merge_cols], on="GUID", how="left")
             st.subheader("Übersicht")
-            uebersicht = merged.rename(columns={"comment": "Beschrieb"})
+            uebersicht = merged.rename(columns={"Description": "Beschrieb"})
             df_display = uebersicht[["IfcEntity", "PredefinedType", "Name", "Beschrieb", "Durchmesser", "Material KBOB", "AI Score"]].copy()
             if "AI Score" in df_display.columns:
                 df_display["AI Score"] = df_display["AI Score"].apply(lambda x: f"{x:.3f}" if pd.notna(x) else "")
