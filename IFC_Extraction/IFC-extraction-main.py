@@ -6,6 +6,9 @@ import ifcopenshell.util.unit
 from ifc_material_extract_util import extract_materials
 import json
 
+
+NO_AGGREGATES_ALLOWED_SUBENTITY_TYPES = {"IfcCovering", "IfcReinforcingBar"}
+
 # --- Einheiten-Handling ---
 def get_ifc_units(model):
     """Liest Skalierungsfaktoren für Länge/Fläche/Volumen aus dem IFC-Modell.
@@ -32,14 +35,6 @@ def export_list_of_dicts_to_jsonl(dict_list, output_path):
     print(f"Export abgeschlossen: {output_path}")
     return output_path
 
-def export_list_of_strings_to_txt(string_list, output_path):
-    """Exportiert eine Liste von Strings als TXT-Datei (eine Zeile pro String)."""
-    with open(output_path, "w", encoding="utf-8") as f:
-        for line in string_list:
-            f.write(line + "\n")
-    print(f"Fertig! {len(string_list)} Zeilen in {output_path} gespeichert.")
-    return output_path
-
 def extract_fields_from_psets(pset_dict, wanted_fields, default=None):
     extracted = {}
     for field in wanted_fields:
@@ -52,13 +47,95 @@ def extract_fields_from_psets(pset_dict, wanted_fields, default=None):
     return extracted
 
 
-# clean_value wird für generische Felder verwendet, aber für Längen/Volumen/Durchmesser gibt es jetzt clean_and_convert_value
-def clean_value(val, field=None):
-    if isinstance(val, list):
-        val = ", ".join(str(v) for v in val if v)
-    if val is None or str(val).strip() == "" or str(val).strip() == "NOTDEFINED":
-        return None
-    return str(val).strip()
+def _obj_id(obj):
+    return obj.id() if hasattr(obj, "id") else id(obj)
+
+
+def _rel_related_objects(rels, rel_type, related_attr):
+    result = []
+    seen = set()
+    for rel in rels or []:
+        if rel_type and hasattr(rel, "is_a") and not rel.is_a(rel_type):
+            continue
+        for obj in getattr(rel, related_attr, []) or []:
+            obj_id = _obj_id(obj)
+            if obj_id in seen:
+                continue
+            seen.add(obj_id)
+            result.append(obj)
+    return result
+
+
+def _get_aggregate_children(obj):
+    return _rel_related_objects(getattr(obj, "IsDecomposedBy", []), "IfcRelAggregates", "RelatedObjects")
+
+
+def _is_allowed_no_aggregates_subentity(element):
+    if not hasattr(element, "is_a"):
+        return False
+    return any(element.is_a(entity_type) for entity_type in NO_AGGREGATES_ALLOWED_SUBENTITY_TYPES)
+
+
+def _build_no_aggregates_elements(elements):
+    elements_by_id = {_obj_id(element): element for element in elements}
+
+    def _aggregate_parent_elements(element):
+        parents = []
+        for rel in getattr(element, "Decomposes", []) or []:
+            if not (hasattr(rel, "is_a") and rel.is_a("IfcRelAggregates")):
+                continue
+            parent = getattr(rel, "RelatingObject", None)
+            if parent is None:
+                continue
+            parent_id = _obj_id(parent)
+            if parent_id in elements_by_id:
+                parents.append(elements_by_id[parent_id])
+        return parents
+
+    roots = [element for element in elements if not _aggregate_parent_elements(element)]
+
+    selected = {}
+
+    def _select_for_export(element, active_path):
+        element_id = _obj_id(element)
+        if element_id in active_path:
+            selected[element_id] = element
+            return
+
+        next_path = set(active_path)
+        next_path.add(element_id)
+
+        aggregate_children = [
+            child for child in _get_aggregate_children(element) if _obj_id(child) in elements_by_id
+        ]
+        exception_children = [
+            child for child in aggregate_children if _is_allowed_no_aggregates_subentity(child)
+        ]
+        non_exception_children = [
+            child for child in aggregate_children if not _is_allowed_no_aggregates_subentity(child)
+        ]
+
+        for child in exception_children:
+            selected[_obj_id(child)] = child
+
+        if len(non_exception_children) == 1:
+            _select_for_export(non_exception_children[0], next_path)
+            return
+
+        selected[element_id] = element
+
+    for root in roots:
+        _select_for_export(root, set())
+
+    for element in elements:
+        if _is_allowed_no_aggregates_subentity(element):
+            selected[_obj_id(element)] = element
+
+    return list(selected.values())
+
+
+def _is_exportable_ifc_element(element):
+    return element.is_a() not in {"IfcOpeningElement", "IfcElementAssembly"}
 
 def clean_and_convert_value(val, field, units):
     if val is None or str(val).strip() == "" or str(val).strip() == "NOTDEFINED":
@@ -87,54 +164,7 @@ def clean_and_convert_value(val, field, units):
     return str(val).strip()
 
 
-if __name__ == "__main__":
-    # IFC-Dateipfad als Argument erwarten
-    if len(sys.argv) > 1:
-        ifc_file_path = sys.argv[1]
-    else:
-        print("Usage: python IFC-extraction-main.py <path-to-ifc-file>")
-        sys.exit(1)
-
-    # Definiere, welche Eigenschaften aus den PropertySets extrahiert werden sollen
-    property_fields = [
-        "comment",
-        "Description",
-        "Status",
-        "Durchmesser",
-        "CastingMethod",
-        "StructuralClass",
-        "StrengthClass",
-        "ExposureClass",
-        "ReinforcementStrengthClass",
-        "Length",
-        "NetVolume",
-        "Ansichtsfläche",
-        "ReinforcementVolumeRatio",
-    ]
-
-    # Definiere, welche Felder in die TXT-Exportzeile aufgenommen werden
-    export_fields_for_txt = [
-        "IfcEntity",
-        "PredefinedType",
-        "Name",
-        "Material",
-        "comment",
-        "Description",
-        "Durchmesser",
-        "CastingMethod",
-        "StructuralClass",
-        "StrengthClass",
-        "ExposureClass",
-        "ReinforcementStrengthClass"
-    ]
-
-
-    # Schritt 2: IFC öffnen und relevante Elemente extrahieren
-    model = ifcopenshell.open(ifc_file_path)
-    units = get_ifc_units(model)
-    elements = [element for element in model.by_type("IfcElement") if element.is_a() not in ["IfcOpeningElement", "IfcElementAssembly"]]
-
-    # Schritt 3: Für jedes Element relevante Felder extrahieren und Dictionary-Liste aufbauen
+def build_export_dicts(model, elements, property_fields, units):
     export_dicts = []
     for element in elements:
         property_sets = ifcopenshell.util.element.get_psets(element)
@@ -144,7 +174,9 @@ if __name__ == "__main__":
         guid = element.GlobalId if hasattr(element, 'GlobalId') else None
         description = getattr(element, "Description", None)
         extracted_properties = extract_fields_from_psets(property_sets, property_fields)
-        # Konvertiere relevante Felder
+        if ifc_entity == "IfcReinforcingBar":
+            reinforcing_bar_fields = extract_fields_from_psets(property_sets, ["Count", "Weight"])
+            extracted_properties.update(reinforcing_bar_fields)
         for key in ["Length", "NetVolume", "Durchmesser"]:
             if key in extracted_properties and extracted_properties[key] is not None:
                 extracted_properties[key] = clean_and_convert_value(extracted_properties[key], key, units)
@@ -160,9 +192,45 @@ if __name__ == "__main__":
             "GUID": guid,
             **filtered_properties
         }
-        # Entferne leere Felder
         element_dict = {k: v for k, v in element_dict.items() if v not in (None, "", [], {})}
         export_dicts.append(element_dict)
+    return export_dicts
+
+
+if __name__ == "__main__":
+    # IFC-Dateipfad als Argument erwarten
+    if len(sys.argv) > 1:
+        ifc_file_path = sys.argv[1]
+    else:
+        print("Usage: python IFC-extraction-main.py <path-to-ifc-file>")
+        sys.exit(1)
+
+    # Definiere, welche Eigenschaften aus den PropertySets extrahiert werden sollen
+    property_fields = [
+        "comment",
+        "Description",
+        "Status",
+        "Durchmesser",               # nicht nach IFC-Schema
+        "CastingMethod",
+        "StructuralClass",
+        "StrengthClass",
+        "ExposureClass",
+        "ReinforcementStrengthClass",
+        "Length",
+        "NetVolume",
+        "Ansichtsfläche",           # nicht nach IFC-Schema
+        "ReinforcementVolumeRatio",
+    ]
+
+    # Schritt 2: IFC öffnen und relevante Elemente extrahieren
+    model = ifcopenshell.open(ifc_file_path)
+    units = get_ifc_units(model)
+    elements = [element for element in model.by_type("IfcElement") if _is_exportable_ifc_element(element)]
+    elements_no_aggregates = _build_no_aggregates_elements(elements)
+    elements_no_aggregates = [element for element in elements_no_aggregates if _is_exportable_ifc_element(element)]
+
+    # Schritt 3: Relevante Felder aus Aggregationslogik-Elementen extrahieren
+    export_dicts = build_export_dicts(model, elements_no_aggregates, property_fields, units)
 
     # Schritt 4: Exportiere als JSONL
     base_filename = os.path.splitext(os.path.basename(ifc_file_path))[0]
@@ -170,17 +238,5 @@ if __name__ == "__main__":
     jsonl_export_path = os.path.join(output_directory, base_filename + ".jsonl")
     export_list_of_dicts_to_jsonl(export_dicts, jsonl_export_path)
 
-    # Schritt 5: Erzeuge String-Liste für TXT-Export
-    export_lines = []
-    for element_dict in export_dicts:
-        values = [clean_value(element_dict.get(field, ""), field) for field in export_fields_for_txt]
-        values = [v for v in values if v]
-        if values:
-            line = " ; ".join(values)
-            export_lines.append(line)
-
-    txt_export_path = os.path.join(output_directory, base_filename + ".txt")
-    export_list_of_strings_to_txt(export_lines, txt_export_path)
-
-    print("Beide Exporte abgeschlossen.")
+    print("JSONL-Export abgeschlossen.")
 

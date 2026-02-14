@@ -12,7 +12,7 @@ from functools import lru_cache
 DATABASE_PATH = r"C:\Users\wpx619\AAA_Python_MTH\Ökobilanzdaten.sqlite3"
 TABLE_NAME = "Oekobilanzdaten"
 COLUMN_MATERIAL = "Material"
-MODEL_NAME = "all-MiniLM-L6-v2"  # Change model name here
+MODEL_NAME = "BAAI/bge-m3"  # Change model name here
 
 # Make model path independent from the current working directory (important when called from Streamlit/subprocess)
 _BASE_DIR = Path(__file__).resolve().parent
@@ -56,15 +56,17 @@ IFC_EXPORT_FIELDS = [
     "Name",
     "Material",
     "Description",
-    "comment",
     "Durchmesser",
     "CastingMethod",
-    "StructuralClass",
-    "StrengthClass",
-    "ReinforcementStrengthClass"
 ]
+
 # "ExposureClass",
-#
+# "ReinforcementStrengthClass"
+# "StrengthClass",
+# "StructuralClass",
+# "comment", (nur für Tekla 2025)
+
+
 
 # Modell global initialisieren
 _global_sbert_model = None

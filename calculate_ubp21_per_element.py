@@ -80,8 +80,8 @@ KG_MATERIALS = {
     "Kies gebrochen",
     "Rundkies",
     "Sand",
-    "Baukleber/Einbettmörtel mineralisch",
-    "Baukleber/Einbettmörtel organisch",
+    "Baukleber Einbettmörtel mineralisch",
+    "Baukleber Einbettmörtel organisch",
     "Aluminiumblech blank",
     "Aluminiumprofil blank",
     "Armierungsstahl",
@@ -129,7 +129,7 @@ KG_MATERIALS = {
     "Polyethylenvlies PE",
     "Polystyrol expandiert EPS",
     "Polystyrol extrudiert XPS",
-    "Polyurethan PUR/PIR",
+    "Polyurethan PUR PIR",
     "Acrylnitril-Butadien-Styrol ABS",
     "Gusseisen",
     "Polyethylen PE",
@@ -142,12 +142,102 @@ KG_MATERIALS = {
     "Polystyrol PS",
 }
 
+KG_DIRECT_FIELDS = [
+    "Masse",
+    "Mass",
+    "Weight",
+    "NetWeight",
+    "GrossWeight",
+    "Menge",
+]
+
 
 def _to_float(value):
     try:
         return float(value) if value is not None else None
     except Exception:
         return None
+
+
+def _first_numeric(entry, keys):
+    for key in keys:
+        if key in entry:
+            value = _to_float(entry.get(key))
+            if value is not None:
+                return value
+    return None
+
+
+def _create_result_table(cursor, columns):
+    col_defs = ", ".join(
+        [
+            f"[{col}] REAL" if col not in ["GUID", "Material (KBOB)", "Bezugsgröße", "Fehlende Berechnungsgrundlage"] else f"[{col}] TEXT"
+            for col in columns
+        ]
+    )
+    cursor.execute(f"CREATE TABLE Resultate ({col_defs})")
+    cursor.execute("CREATE UNIQUE INDEX IF NOT EXISTS idx_resultate_guid ON Resultate([GUID])")
+
+
+def _ensure_result_table_schema(cursor, columns):
+    cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='Resultate'")
+    exists = cursor.fetchone() is not None
+    if not exists:
+        _create_result_table(cursor, columns)
+        return
+
+    cursor.execute("PRAGMA table_info(Resultate)")
+    existing_cols = [row[1] for row in cursor.fetchall()]
+    if existing_cols != columns:
+        cursor.execute("DROP TABLE Resultate")
+        _create_result_table(cursor, columns)
+        return
+
+    cursor.execute("CREATE UNIQUE INDEX IF NOT EXISTS idx_resultate_guid ON Resultate([GUID])")
+
+
+def _determine_reference_value(entry, material, material_vals):
+    ifc_entity = str(entry.get("IfcEntity") or "").strip().lower()
+    net_volume = entry.get("NetVolume")
+    length = entry.get("Length")
+    ansichtsfläche = entry.get("Ansichtsfläche")
+
+    if ifc_entity == "ifcreinforcingbar":
+        weight = _first_numeric(entry, ["Weight", "Weight [kg]"])
+        count = _first_numeric(entry, ["Count"])
+        if weight is not None and count is not None:
+            return "Masse (kg)", weight * count, None
+        if weight is None:
+            return "Masse (kg)", None, "Weight fehlt fuer IfcReinforcingBar"
+        return "Masse (kg)", None, "Count fehlt fuer IfcReinforcingBar"
+
+    if material in LENGTH_MATERIALS:
+        value = _to_float(length)
+        reason = None if value is not None else "Length fehlt"
+        return "Length", value, reason
+
+    if material in AREA_MATERIALS:
+        value = _to_float(ansichtsfläche)
+        reason = None if value is not None else "Ansichtsfläche fehlt"
+        return "Ansichtsfläche", value, reason
+
+    if material in KG_MATERIALS:
+        for field in KG_DIRECT_FIELDS:
+            direct_mass = _to_float(entry.get(field))
+            if direct_mass is not None:
+                return "Masse (kg)", direct_mass, None
+
+        density_num = _to_float(material_vals.get(COLUMN_DENSITY))
+        net_volume_num = _to_float(net_volume)
+        if density_num is not None and net_volume_num is not None:
+            return "Masse (kg)", net_volume_num * density_num, None
+        if net_volume_num is None:
+            return "Masse (kg)", None, "NetVolume fehlt fuer Umrechnung m3->kg"
+        return "Masse (kg)", None, "Rohdichte fehlt in DB"
+
+    value = _to_float(net_volume)
+    reason = None if value is not None else "NetVolume fehlt"
+    return "NetVolume", value, reason
 
 
 def load_ifc_jsonl_entries(jsonl_path):
@@ -228,35 +318,23 @@ def calculate_ubp_for_jsonl(jsonl_path, export_dir=None, database_path=DATABASE_
         net_volume = entry.get("NetVolume")
         length = entry.get("Length")
         ansichtsfläche = entry.get("Ansichtsfläche")
-
-        if material in LENGTH_MATERIALS:
-            value_for_calc = length
-            value_label = "Length"
-        elif material in AREA_MATERIALS:
-            value_for_calc = ansichtsfläche
-            value_label = "Ansichtsfläche"
-        elif material in KG_MATERIALS:
-            density_num = _to_float(material_vals.get(COLUMN_DENSITY))
-            net_volume_num = _to_float(net_volume)
-            if density_num is not None and net_volume_num is not None:
-                value_for_calc = net_volume_num * density_num
-            else:
-                value_for_calc = None
-            value_label = "Masse (kg)"
-        else:
-            value_for_calc = net_volume
-            value_label = "NetVolume"
-        value_num = _to_float(value_for_calc)
+        count = entry.get("Count")
+        weight = entry.get("Weight") if "Weight" in entry else entry.get("Weight [kg]")
+        value_label, value_num, missing_reason = _determine_reference_value(entry, material, material_vals)
 
         export_row = {
             "GUID": guid,
             "Material (KBOB)": material,
+            "IfcEntity": entry.get("IfcEntity"),
             "Length": length,
             "Ansichtsfläche": ansichtsfläche,
             "NetVolume": net_volume,
-            "Masse (kg)": value_for_calc if value_label == "Masse (kg)" else None,
+            "Count": count,
+            "Weight": weight,
+            "Masse (kg)": value_num if value_label == "Masse (kg)" else None,
             "Bezugsgröße": value_label,
             "Berechnungswert": value_num,
+            "Fehlende Berechnungsgrundlage": missing_reason,
         }
         for col in COLUMNS_TO_CALC:
             db_val = material_vals.get(col)
@@ -271,78 +349,18 @@ def calculate_ubp_for_jsonl(jsonl_path, export_dir=None, database_path=DATABASE_
     cursor = conn.cursor()
     if results:
         columns = list(results[0].keys())
-        col_defs = ", ".join(
-            [
-                f"[{col}] REAL" if col not in ["GUID", "Material (KBOB)"] else f"[{col}] TEXT"
-                for col in columns
-            ]
-        )
-        cursor.execute(f"CREATE TABLE IF NOT EXISTS Resultate ({col_defs})")
-
-        cursor.execute("PRAGMA table_info(Resultate)")
-        table_cols = [row[1] for row in cursor.fetchall()]
-        has_length = "Length" in table_cols
-        has_ansichtsfläche = "Ansichtsfläche" in table_cols
-        has_net_volume = "NetVolume" in table_cols
-        has_mass_kg = "Masse (kg)" in table_cols
+        _ensure_result_table_schema(cursor, columns)
 
         for row in results:
-            guid = str(row.get("GUID", ""))
-            material_kbob = str(row.get("Material (KBOB)", ""))
-            length_val = str(row.get("Length", ""))
-            ansichtsfläche_val = str(row.get("Ansichtsfläche", ""))
-            net_volume_val = str(row.get("NetVolume", ""))
-            mass_kg_val = str(row.get("Masse (kg)", ""))
-            select_cols = ["[Material (KBOB)]"]
-            if has_length:
-                select_cols.append("[Length]")
-            if has_ansichtsfläche:
-                select_cols.append("[Ansichtsfläche]")
-            if has_net_volume:
-                select_cols.append("[NetVolume]")
-            if has_mass_kg:
-                select_cols.append("[Masse (kg)]")
-            select_stmt = f"SELECT {', '.join(select_cols)} FROM Resultate WHERE [GUID]=?"
-            cursor.execute(select_stmt, (guid,))
-            existing = cursor.fetchone()
             values = [row.get(col, None) for col in columns]
             placeholders = ", ".join(["?" for _ in columns])
-            if existing:
-                idx = 0
-                existing_material = existing[idx]
-                idx += 1
-                existing_length = existing[idx] if has_length else ""
-                if has_length:
-                    idx += 1
-                existing_ansichtsfläche = existing[idx] if has_ansichtsfläche else ""
-                if has_ansichtsfläche:
-                    idx += 1
-                existing_net_volume = existing[idx] if has_net_volume else ""
-                if has_net_volume:
-                    idx += 1
-                existing_mass_kg = existing[idx] if has_mass_kg else ""
-
-                changed = False
-                if material_kbob != existing_material:
-                    changed = True
-                if length_val and length_val != existing_length:
-                    changed = True
-                if ansichtsfläche_val and ansichtsfläche_val != existing_ansichtsfläche:
-                    changed = True
-                if net_volume_val and net_volume_val != existing_net_volume:
-                    changed = True
-                if mass_kg_val and mass_kg_val != existing_mass_kg:
-                    changed = True
-                if changed:
-                    set_clause = ", ".join([f"[{col}]=?" for col in columns])
-                    cursor.execute(
-                        f"UPDATE Resultate SET {set_clause} WHERE [GUID]=?",
-                        values + [guid],
-                    )
-                else:
-                    pass
-            else:
-                cursor.execute(f"INSERT INTO Resultate VALUES ({placeholders})", values)
+            col_list = ", ".join([f"[{col}]" for col in columns])
+            update_clause = ", ".join([f"[{col}]=excluded.[{col}]" for col in columns if col != "GUID"])
+            cursor.execute(
+                f"INSERT INTO Resultate ({col_list}) VALUES ({placeholders}) "
+                f"ON CONFLICT([GUID]) DO UPDATE SET {update_clause}",
+                values,
+            )
         conn.commit()
     conn.close()
     return export_db_path, results

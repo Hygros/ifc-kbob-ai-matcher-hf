@@ -22,6 +22,202 @@ if APP_ROOT not in sys.path:
 from calculate_ubp21_per_element import calculate_ubp_for_jsonl
 
 
+CHART_HEIGHT = 800
+
+
+INDICATOR_DEFINITIONS = [
+    {
+        "db_col": "UBP21Total",
+        "column": "ubp",
+        "label": "UBP21 Total",
+        "family": "Umweltbelastungspunkte (UBP21)",
+        "phase": "Total",
+        "unit": "UBP",
+    },
+    {
+        "db_col": "UBP21Herstellung",
+        "column": "ubp21_herstellung",
+        "label": "UBP21 Herstellung",
+        "family": "Umweltbelastungspunkte (UBP21)",
+        "phase": "Herstellung",
+        "unit": "UBP",
+    },
+    {
+        "db_col": "UBP21Entsorgung",
+        "column": "ubp21_entsorgung",
+        "label": "UBP21 Entsorgung",
+        "family": "Umweltbelastungspunkte (UBP21)",
+        "phase": "Entsorgung",
+        "unit": "UBP",
+    },
+    {
+        "db_col": "PrimärenergiegesamtTotalkWhoil-eq",
+        "column": "penre_kwh_oil_eq",
+        "label": "Primärenergie gesamt Total",
+        "family": "Primärenergie gesamt (kWh oil-eq)",
+        "phase": "Total",
+        "unit": "kWh oil-eq",
+    },
+    {
+        "db_col": "PrimärenergiegesamtHerstellungtotalkWhoil-eq",
+        "column": "penre_gesamt_herstellung_total",
+        "label": "Primärenergie gesamt Herstellung total",
+        "family": "Primärenergie gesamt (kWh oil-eq)",
+        "phase": "Herstellung total",
+        "unit": "kWh oil-eq",
+    },
+    {
+        "db_col": "PrimärenergiegesamtEntsorgungkWhoil-eq",
+        "column": "penre_gesamt_entsorgung",
+        "label": "Primärenergie gesamt Entsorgung",
+        "family": "Primärenergie gesamt (kWh oil-eq)",
+        "phase": "Entsorgung",
+        "unit": "kWh oil-eq",
+    },
+    {
+        "db_col": "PrimärenergiegesamtHerstellungenergetischgenutztkWhoil-eq",
+        "column": "penre_gesamt_herstellung_energetisch",
+        "label": "Primärenergie gesamt Herstellung energetisch genutzt",
+        "family": "Primärenergie gesamt (kWh oil-eq)",
+        "phase": "Herstellung energetisch genutzt",
+        "unit": "kWh oil-eq",
+    },
+    {
+        "db_col": "PrimärenergiegesamtHerstellungstofflichgenutztkWhoil-eq",
+        "column": "penre_gesamt_herstellung_stofflich",
+        "label": "Primärenergie gesamt Herstellung stofflich genutzt",
+        "family": "Primärenergie gesamt (kWh oil-eq)",
+        "phase": "Herstellung stofflich genutzt",
+        "unit": "kWh oil-eq",
+    },
+    {
+        "db_col": "PrimärenergieerneuerbarTotalkWhoil-eq",
+        "column": "penre_erneuerbar_total",
+        "label": "Primärenergie erneuerbar Total",
+        "family": "Primärenergie erneuerbar (kWh oil-eq)",
+        "phase": "Total",
+        "unit": "kWh oil-eq",
+    },
+    {
+        "db_col": "PrimärenergieerneuerbarHerstellungtotalkWhoil-eq",
+        "column": "penre_erneuerbar_herstellung_total",
+        "label": "Primärenergie erneuerbar Herstellung total",
+        "family": "Primärenergie erneuerbar (kWh oil-eq)",
+        "phase": "Herstellung total",
+        "unit": "kWh oil-eq",
+    },
+    {
+        "db_col": "PrimärenergieerneuerbarHerstellungenergetischgenutztkWhoil-eq",
+        "column": "penre_erneuerbar_herstellung_energetisch",
+        "label": "Primärenergie erneuerbar Herstellung energetisch genutzt",
+        "family": "Primärenergie erneuerbar (kWh oil-eq)",
+        "phase": "Herstellung energetisch genutzt",
+        "unit": "kWh oil-eq",
+    },
+    {
+        "db_col": "PrimärenergieerneuerbarHerstellungstofflichgenutztkWhoil-eq",
+        "column": "penre_erneuerbar_herstellung_stofflich",
+        "label": "Primärenergie erneuerbar Herstellung stofflich genutzt",
+        "family": "Primärenergie erneuerbar (kWh oil-eq)",
+        "phase": "Herstellung stofflich genutzt",
+        "unit": "kWh oil-eq",
+    },
+    {
+        "db_col": "nichterneuerbar(GraueEnergie)TotalkWhoil-eq",
+        "column": "graue_energie_total",
+        "label": "Graue Energie Total",
+        "family": "Nicht erneuerbar (Graue Energie) (kWh oil-eq)",
+        "phase": "Total",
+        "unit": "kWh oil-eq",
+    },
+    {
+        "db_col": "nichterneuerbar(GraueEnergie)HerstellungtotalkWhoil-eq",
+        "column": "graue_energie_herstellung_total",
+        "label": "Graue Energie Herstellung total",
+        "family": "Nicht erneuerbar (Graue Energie) (kWh oil-eq)",
+        "phase": "Herstellung total",
+        "unit": "kWh oil-eq",
+    },
+    {
+        "db_col": "nichterneuerbar(GraueEnergie)HerstellungenergetischgenutztkWhoil-eq",
+        "column": "graue_energie_herstellung_energetisch",
+        "label": "Graue Energie Herstellung energetisch genutzt",
+        "family": "Nicht erneuerbar (Graue Energie) (kWh oil-eq)",
+        "phase": "Herstellung energetisch genutzt",
+        "unit": "kWh oil-eq",
+    },
+    {
+        "db_col": "nichterneuerbar(GraueEnergie)HerstellungstofflichgenutztkWhoil-eq",
+        "column": "graue_energie_herstellung_stofflich",
+        "label": "Graue Energie Herstellung stofflich genutzt",
+        "family": "Nicht erneuerbar (Graue Energie) (kWh oil-eq)",
+        "phase": "Herstellung stofflich genutzt",
+        "unit": "kWh oil-eq",
+    },
+    {
+        "db_col": "nichterneuerbar(GraueEnergie)EntsorgungkWhoil-eq",
+        "column": "graue_energie_entsorgung",
+        "label": "Graue Energie Entsorgung",
+        "family": "Nicht erneuerbar (Graue Energie) (kWh oil-eq)",
+        "phase": "Entsorgung",
+        "unit": "kWh oil-eq",
+    },
+    {
+        "db_col": "TreibhausgasemissionenTotalkgCO2-eq",
+        "column": "gwp_kgco2eq",
+        "label": "Treibhausgasemissionen Total",
+        "family": "Treibhausgasemissionen (kg CO2-eq)",
+        "phase": "Total",
+        "unit": "kg CO2-eq",
+    },
+    {
+        "db_col": "TreibhausgasemissionenHerstellungkgCO2-eq",
+        "column": "gwp_herstellung_kgco2eq",
+        "label": "Treibhausgasemissionen Herstellung",
+        "family": "Treibhausgasemissionen (kg CO2-eq)",
+        "phase": "Herstellung",
+        "unit": "kg CO2-eq",
+    },
+    {
+        "db_col": "TreibhausgasemissionenEntsorgungkgCO2-eq",
+        "column": "gwp_entsorgung_kgco2eq",
+        "label": "Treibhausgasemissionen Entsorgung",
+        "family": "Treibhausgasemissionen (kg CO2-eq)",
+        "phase": "Entsorgung",
+        "unit": "kg CO2-eq",
+    },
+    {
+        "db_col": "BiogenerKohlenstoffimProduktenthaltenkgC",
+        "column": "biogener_kohlenstoff_kgc",
+        "label": "Biogener Kohlenstoff im Produkt",
+        "family": "Biogener Kohlenstoff (kg C)",
+        "phase": "Inhalt",
+        "unit": "kg C",
+    },
+]
+
+INDICATOR_DB_TO_COLUMN = {
+    item["db_col"]: item["column"] for item in INDICATOR_DEFINITIONS
+}
+
+
+def get_available_indicator_definitions(df: pd.DataFrame) -> list[dict]:
+    available = []
+    for definition in INDICATOR_DEFINITIONS:
+        alias_col = definition["column"]
+        db_col = definition["db_col"]
+        active_col = None
+        if alias_col in df.columns and not df[alias_col].isna().all():
+            active_col = alias_col
+        elif db_col in df.columns and not df[db_col].isna().all():
+            active_col = db_col
+        if active_col:
+            enriched = definition.copy()
+            enriched["active_column"] = active_col
+            available.append(enriched)
+    return available
+
+
 @st.cache_resource(show_spinner=False)
 def _preload_sbert_resources() -> bool:
     """Load SBERT model + DB corpus embeddings once per Streamlit server process."""
@@ -301,21 +497,26 @@ def apply_ubp_results(df: pd.DataFrame, results: list) -> pd.DataFrame:
     if not results:
         return df
     results_df = pd.DataFrame(results)
-    col_map = {
-        "UBP21Total": "ubp",
-        "TreibhausgasemissionenTotalkgCO2-eq": "gwp_kgco2eq",
-        "PrimärenergiegesamtTotalkWhoil-eq": "penre_kwh_oil_eq",
-    }
-    for src, dst in col_map.items():
+    for src, dst in INDICATOR_DB_TO_COLUMN.items():
         if src in results_df.columns:
             results_df[dst] = results_df[src]
-    keep_cols = ["GUID"] + [dst for dst in col_map.values() if dst in results_df.columns]
+    keep_cols = ["GUID"]
+    for src, dst in INDICATOR_DB_TO_COLUMN.items():
+        if src in results_df.columns:
+            keep_cols.append(src)
+        if dst in results_df.columns:
+            keep_cols.append(dst)
+    keep_cols = list(dict.fromkeys(keep_cols))
     results_df = results_df[keep_cols].copy()
     merged = df.merge(results_df, on="GUID", how="left", suffixes=("", "_calc"))
-    for dst in col_map.values():
-        calc_col = f"{dst}_calc"
+    indicator_columns = list(dict.fromkeys(list(INDICATOR_DB_TO_COLUMN.keys()) + list(INDICATOR_DB_TO_COLUMN.values())))
+    for col_name in indicator_columns:
+        calc_col = f"{col_name}_calc"
         if calc_col in merged.columns:
-            merged[dst] = merged[calc_col].fillna(merged[dst])
+            if col_name in merged.columns:
+                merged[col_name] = merged[calc_col].fillna(merged[col_name])
+            else:
+                merged[col_name] = merged[calc_col]
             merged = merged.drop(columns=[calc_col])
     return merged
 
@@ -344,15 +545,14 @@ def kpi_block(df: pd.DataFrame):
     def chf_thousands(x):
         # Format with apostrophe as thousands separator, no decimals
         return f"{int(round(x)):,}".replace(",", "'")
-    c1.metric("Global Warming Potential", f"{chf_thousands(total_gwp)} kg CO₂ eq")
-    c2.metric("Environmental Impact Points", f"{chf_thousands(total_ubp)} UBP")
-    c3.metric("Primary Energy Non-Renewable", f"{chf_thousands(total_penre)} kWh oil‑eq")
+    c1.metric("Total Global Warming Potential", f"{chf_thousands(total_gwp)} kg CO₂ eq")
+    c2.metric("Total Environmental Impact Points", f"{chf_thousands(total_ubp)} UBP")
+    c3.metric("Total Primary Energy Non-Renewable", f"{chf_thousands(total_penre)} kWh oil‑eq")
 
 def group_and_aggregate(df: pd.DataFrame, group_mode: str, indicator: str) -> pd.DataFrame:
     group_cols = {
-        "Group by Elements": ["element_name"],
+        "Group by Element Name": ["element_name"],
         "Group by KBOB Materials": ["kbob_material"],
-        "Group by Ifc Materials": ["ifc_material"],
         "Group by Ifc Entity": ["ifc_entity"],
     }[group_mode]
     agg = (
@@ -879,19 +1079,44 @@ with tab_charts:
         # Liste dynamisch basierend auf Grouping
         grouping_mode = st.selectbox(
             "Grouping Mode",
-            options=["Group by Elements", "Group by KBOB Materials", "Group by Ifc Materials", "Group by Ifc Entity"],
-            index=3,
+            options=["Group by Element Name", "Group by KBOB Materials", "Group by Ifc Entity"],
+            index=2,
         )
-        indicator_label_map = {
-            "Global Warming Potential (kg CO₂ eq)": "gwp_kgco2eq",
-            "Environmental Impact Points (UBP)": "ubp",
-            "Primary Energy Non-Renewable (kWh oil‑eq)": "penre_kwh_oil_eq",
-        }
-        indicator_ui = st.selectbox("Environmental Indicator", list(indicator_label_map.keys()), index=1)
-        indicator = indicator_label_map[indicator_ui]
+
+        available_indicators = get_available_indicator_definitions(df)
+        if not available_indicators:
+            st.warning("Keine berechneten Umweltindikatoren verfügbar.")
+            st.stop()
+
+        family_options = list(dict.fromkeys([item["family"] for item in available_indicators]))
+        default_family = "Umweltbelastungspunkte (UBP21)"
+        family_index = family_options.index(default_family) if default_family in family_options else 0
+        selected_family = st.selectbox("Indikator-Familie", options=family_options, index=family_index)
+
+        family_indicators = [item for item in available_indicators if item["family"] == selected_family]
+        indicator_options = [f"{item['label']} ({item['unit']})" for item in family_indicators]
+        default_indicator_index = next(
+            (idx for idx, item in enumerate(family_indicators) if item.get("phase") == "Total"),
+            0,
+        )
+        selected_indicator_labels = st.multiselect(
+            "Kennwerte",
+            options=indicator_options,
+            default=[indicator_options[default_indicator_index]],
+        )
+        if not selected_indicator_labels:
+            st.info("Bitte mindestens einen Kennwert auswählen.")
+            st.stop()
+
+        selected_indicator_meta = [
+            family_indicators[indicator_options.index(label)] for label in selected_indicator_labels
+        ]
+        selected_indicator_columns = [
+            item.get("active_column") or item["column"] for item in selected_indicator_meta
+        ]
 
         # Dynamische Auswahl abhängig vom Grouping
-        if grouping_mode == "Group by Elements":
+        if grouping_mode == "Group by Element Name":
             col = "element_name" if "element_name" in df.columns else ("Name" if "Name" in df.columns else None)
             if col:
                 universe = df[col].dropna().unique().tolist()
@@ -905,13 +1130,6 @@ with tab_charts:
             else:
                 universe = []
             label = "Select KBOB materials"
-        elif grouping_mode == "Group by Ifc Materials":
-            col = "ifc_material" if "ifc_material" in df.columns else ("Material" if "Material" in df.columns else None)
-            if col:
-                universe = df[col].dropna().unique().tolist()
-            else:
-                universe = []
-            label = "Select Ifc materials"
         else:
             col = "ifc_entity" if "ifc_entity" in df.columns else ("IfcEntity" if "IfcEntity" in df.columns else None)
             if col:
@@ -926,33 +1144,103 @@ with tab_charts:
 
         # Filter und Aggregation
         fdf = df.copy()
-        if grouping_mode == "Group by Elements":
+        if grouping_mode == "Group by Element Name":
             fdf = fdf[fdf["element_name"].isin(selection)]
         elif grouping_mode == "Group by KBOB Materials":
             fdf = fdf[fdf["kbob_material"].isin(selection)]
-        elif grouping_mode == "Group by Ifc Materials":
-            fdf = fdf[fdf["ifc_material"].isin(selection)]
         else:
             fdf = fdf[fdf["ifc_entity"].isin(selection)]
 
-        agg = group_and_aggregate(fdf, grouping_mode, indicator)
+        agg_wide = (
+            fdf.groupby(col, dropna=False)[selected_indicator_columns]
+            .sum()
+            .reset_index()
+        )
+        rename_map = {
+            col_name: label for col_name, label in zip(selected_indicator_columns, selected_indicator_labels)
+        }
+        agg_wide = agg_wide.rename(columns=rename_map)
+        agg = agg_wide.melt(
+            id_vars=[col],
+            value_vars=selected_indicator_labels,
+            var_name="Kennwert",
+            value_name="value",
+        )
+        total_value = agg["value"].sum(skipna=True)
+        agg["percent"] = agg["value"].apply(
+            lambda x: (float(x) / float(total_value) * 100.0) if pd.notna(x) and total_value not in [0, 0.0] else 0.0
+        )
+        agg["value_label"] = agg["value"].apply(
+            lambda x: f"{int(round(x)):,}".replace(",", "'") if pd.notna(x) else ""
+        )
+        agg["percent_label"] = agg["percent"].apply(lambda x: f"{x:.1f}%")
+        agg["value_percent_label"] = agg["value_label"] + " (" + agg["percent_label"] + ")"
 
         # KPIs
         kpi_block(fdf)
 
         # Chart
         if chart_type == "Bar":
-            fig = px.bar(agg, x=agg.columns[0], y="value", title="Environmental Impact Visualization")
+            fig = px.bar(
+                agg,
+                x=col,
+                y="value",
+                color="Kennwert",
+                text="value_percent_label",
+                barmode="group",
+                title="Environmental Impact Visualization",
+            )
+            fig.update_traces(texttemplate="%{text}", textposition="inside")
         elif chart_type == "Line":
-            fig = px.line(agg, x=agg.columns[0], y="value", markers=True, title="Environmental Impact Visualization")
+            fig = px.line(
+                agg,
+                x=col,
+                y="value",
+                color="Kennwert",
+                text="value_percent_label",
+                markers=True,
+                title="Environmental Impact Visualization",
+            )
+            fig.update_traces(textposition="top center")
         elif chart_type == "Pie":
-            fig = px.pie(agg, names=agg.columns[0], values="value", title="Environmental Impact Visualization")
+            pie_df = agg.copy()
+            if len(selected_indicator_labels) > 1:
+                pie_df["Segment"] = pie_df[col].astype(str) + " | " + pie_df["Kennwert"].astype(str)
+                fig = px.pie(
+                    pie_df,
+                    names="Segment",
+                    values="value",
+                    color="Segment",
+                    custom_data=["value_label"],
+                    title="Environmental Impact Visualization",
+                )
+            else:
+                fig = px.pie(
+                    pie_df,
+                    names=col,
+                    values="value",
+                    color=col,
+                    custom_data=["value_label"],
+                    title="Environmental Impact Visualization",
+                )
+            fig.update_traces(texttemplate="%{label}<br>%{customdata[0]} (%{percent})")
         else:
             # Bubble: x = Gruppenindex, y = value, size = value
             agg = agg.reset_index(drop=True)
             agg["x"] = agg.index
-            fig = px.scatter(agg, x="x", y="value", size="value", hover_name=agg.columns[0], title="Environmental Impact Visualization")
-        fig.update_layout(xaxis_title=None, yaxis_title=indicator_ui)
+            fig = px.scatter(
+                agg,
+                x="x",
+                y="value",
+                size="value",
+                color="Kennwert",
+                text="value_percent_label",
+                hover_name=col,
+                title="Environmental Impact Visualization",
+            )
+            fig.update_traces(textposition="top center")
+        y_axis_label = selected_indicator_labels[0] if len(selected_indicator_labels) == 1 else selected_family
+        fig.update_layout(xaxis_title=None, yaxis_title=y_axis_label, height=CHART_HEIGHT)
         st.plotly_chart(fig, width="stretch")
 
         # Export
