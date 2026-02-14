@@ -1,7 +1,7 @@
 import pandas as pd
 
 
-CHART_HEIGHT = 800
+CHART_HEIGHT = 700
 
 
 INDICATOR_DEFINITIONS = [

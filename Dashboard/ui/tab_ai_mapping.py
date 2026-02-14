@@ -165,7 +165,18 @@ def render_tab_ai_mapping(df: pd.DataFrame | None) -> None:
         active_guids = [active_guid]
         st.session_state["viewer_selected_guids"] = active_guids
 
-    left_col, right_col = st.columns([1.1, 1])
+    left_width_percent = st.slider(
+        "Breite linke Spalte (%)",
+        min_value=0,
+        max_value=100,
+        value=45,
+        step=5,
+        key="ai_mapping_left_width_percent",
+        help="Steuert das Breitenverhältnis zwischen linker Liste und rechtem Viewer.",
+    )
+    right_width_percent = 100 - left_width_percent
+
+    left_col, right_col = st.columns([left_width_percent, right_width_percent])
 
     with right_col:
         _render_viewer(ifc_filename, active_guid, active_guids)
