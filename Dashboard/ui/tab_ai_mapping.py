@@ -1,0 +1,329 @@
+import json
+import os
+import re
+from pathlib import Path
+from urllib.parse import quote
+
+import pandas as pd
+import streamlit as st
+import streamlit.components.v1 as components
+
+from Dashboard.domain.mapping import add_domain_defaults, build_ai_mapping_groups
+from Dashboard.services.ubp import run_ubp_calculation
+from Dashboard.services.viewer import ensure_static_server, render_viewer_bridge, set_active_guid
+
+
+def _get_jsonl_path() -> Path | None:
+    jsonl_path = st.session_state.get("jsonl_path")
+    return Path(jsonl_path) if jsonl_path else None
+
+
+def _load_selection_jsonl(jsonl_path: Path) -> pd.DataFrame:
+    if jsonl_path and jsonl_path.exists():
+        with open(jsonl_path, "r", encoding="utf-8") as f:
+            records = [json.loads(line) for line in f]
+        selection_rows = []
+        for rec in records:
+            selection_rows.append(
+                {
+                    "GUID": rec.get("GUID"),
+                    "Material KBOB": rec.get("selected_kbob_material"),
+                    "AI Score": rec.get("selected_ai_score"),
+                    "SelectedOn": rec.get("selected_on"),
+                }
+            )
+        return pd.DataFrame(selection_rows)
+    return pd.DataFrame(columns=["GUID", "Material KBOB", "AI Score", "SelectedOn"])
+
+
+def _update_jsonl_with_selection(jsonl_path: Path, selection_df: pd.DataFrame) -> None:
+    if not jsonl_path.exists():
+        return
+    with open(jsonl_path, "r", encoding="utf-8") as f:
+        records = [json.loads(line) for line in f]
+    selection_lookup = {row["GUID"]: row for _, row in selection_df.iterrows() if pd.notna(row["GUID"])}
+    for rec in records:
+        guid = rec.get("GUID")
+        if guid in selection_lookup:
+            rec["selected_kbob_material"] = selection_lookup[guid].get("Material KBOB")
+            rec["selected_ai_score"] = selection_lookup[guid].get("AI Score")
+            rec["selected_on"] = selection_lookup[guid].get("SelectedOn")
+    with open(jsonl_path, "w", encoding="utf-8") as f:
+        for rec in records:
+            f.write(json.dumps(rec, ensure_ascii=False) + "\n")
+
+
+def _as_selection_dict(sel_df: pd.DataFrame) -> dict:
+    material_col = "Material KBOB" if "Material KBOB" in sel_df.columns else (
+        "SelectedMaterial" if "SelectedMaterial" in sel_df.columns else None
+    )
+    if material_col is None:
+        return {}
+    return {row["GUID"]: row[material_col] for _, row in sel_df.iterrows()}
+
+
+def _get_score_lookup(matches: list) -> dict:
+    return {match.get("material"): match.get("score") for match in matches or []}
+
+
+def _render_viewer(ifc_filename: str | None, active_guid: str | None, active_guids: list[str]) -> None:
+    static_dir = os.path.abspath(os.path.join(os.path.dirname(os.path.dirname(__file__)), "static"))
+    if ifc_filename:
+        ifc_path = os.path.join(static_dir, ifc_filename)
+    else:
+        ifc_path = None
+
+    if ifc_path and os.path.exists(ifc_path):
+        ensure_static_server(static_dir, port=8080)
+        file_url = f"http://127.0.0.1:8080/{quote(str(ifc_filename))}"
+        viewer_url = f"http://localhost:3000/?file_url={file_url}"
+
+        st.markdown(
+            f"<div class='viewer-sticky'><iframe class='viewer-iframe' src='{viewer_url}'></iframe></div>",
+            unsafe_allow_html=True,
+        )
+        components.html(
+            """
+            <script>
+            (() => {
+                const applySticky = () => {
+                    const viewer = window.parent.document.querySelector('.viewer-sticky');
+                    if (!viewer) return;
+                    const column = viewer.closest('[data-testid="stColumn"]');
+                    const target = column || viewer.closest('[data-testid="stElementContainer"]') || viewer.parentElement;
+                    if (target) {
+                        target.style.position = 'sticky';
+                        target.style.top = '5rem';
+                        target.style.alignSelf = 'flex-start';
+                        target.style.zIndex = '1';
+                    }
+                };
+
+                applySticky();
+                setTimeout(applySticky, 250);
+                setTimeout(applySticky, 1000);
+            })();
+            </script>
+            """,
+            height=0,
+            width=0,
+        )
+        render_viewer_bridge(active_guid, active_guids)
+    else:
+        st.info("Kein IFC-Modell fuer den Viewer gefunden. Lade eine IFC-Datei im Upload-Tab.")
+
+
+def render_tab_ai_mapping(df: pd.DataFrame | None) -> None:
+    if df is None:
+        st.info("Noch keine Daten. Lade in Tab Uploads eine Datei.")
+        return
+
+    st.markdown(
+        """
+        <style>
+        .viewer-iframe {
+            width: 100%;
+            height: 720px;
+            border: none;
+            margin: 0 auto 1rem auto;
+            display: block;
+        }
+        @media (min-width: 992px) {
+            [data-testid="stVerticalBlock"],
+            [data-testid="stHorizontalBlock"],
+            [data-testid="stColumn"],
+            [data-testid="stColumn"] > div,
+            .element-container,
+            .block-container {
+                overflow: visible;
+            }
+            .viewer-sticky {
+                position: sticky;
+                top: 1rem;
+                align-self: flex-start;
+                z-index: 1;
+                will-change: transform;
+                height: fit-content;
+            }
+        }
+        </style>
+        """,
+        unsafe_allow_html=True,
+    )
+
+    ifc_filename = st.session_state.get("ifc_filename")
+    active_guid = st.session_state.get("viewer_selected_guid")
+    active_guids = st.session_state.get("viewer_selected_guids")
+    if not isinstance(active_guid, str):
+        active_guid = None
+        st.session_state["viewer_selected_guid"] = None
+    if not isinstance(active_guids, list):
+        active_guids = []
+        st.session_state["viewer_selected_guids"] = []
+    active_guids = [guid for guid in active_guids if isinstance(guid, str) and guid.strip()]
+    if active_guid and active_guid not in active_guids:
+        active_guids = [active_guid]
+        st.session_state["viewer_selected_guids"] = active_guids
+
+    left_col, right_col = st.columns([1.1, 1])
+
+    with right_col:
+        _render_viewer(ifc_filename, active_guid, active_guids)
+
+    with left_col:
+        active_guid = st.session_state.get("viewer_selected_guid") if isinstance(st.session_state.get("viewer_selected_guid"), str) else None
+        base_cols = ["IfcEntity", "PredefinedType", "Name", "GUID", "Description", "Material", "Durchmesser", "top_k_matches"]
+        if df is not None and hasattr(df, "columns"):
+            for col in base_cols:
+                if col not in df.columns:
+                    df[col] = None
+            base = df[base_cols].copy()
+            base["Durchmesser"] = base["Durchmesser"].astype(str)
+        else:
+            st.warning("Daten konnten nicht geladen werden oder sind leer.")
+            base = pd.DataFrame(columns=base_cols)
+
+        if base.empty:
+            st.stop()
+
+        jsonl_path = _get_jsonl_path()
+        if jsonl_path is not None:
+            sel_df = _load_selection_jsonl(jsonl_path)
+            prev_sel = _as_selection_dict(sel_df)
+        else:
+            sel_df = pd.DataFrame(columns=["GUID", "Material KBOB", "AI Score", "SelectedOn"])
+            prev_sel = {}
+
+        grouped_base = build_ai_mapping_groups(base)
+
+        updates = []
+        for group_index, group in enumerate(grouped_base):
+            row_data = group["row"]
+            guids = [guid for guid in group["guids"] if isinstance(guid, str)]
+            if not guids:
+                continue
+            primary_guid = guids[0]
+
+            def is_valid(value):
+                if value is None:
+                    return False
+                string_value = str(value).strip()
+                if not string_value:
+                    return False
+                normalized = re.sub(r"[\s_\-]+", "", string_value).lower()
+                invalid_tokens = {"nan", "none", "null", "undefined", "notdefined", "n/a", "na", "-"}
+                return normalized not in invalid_tokens
+
+            def format_label_value(value):
+                if isinstance(value, list):
+                    cleaned = [str(item).strip() for item in value if item is not None and str(item).strip()]
+                    return ", ".join(cleaned)
+                return str(value).strip()
+
+            label_parts = []
+            for key in ["IfcEntity", "PredefinedType", "Name", "Description", "Material"]:
+                val = row_data.get(key)
+                formatted_val = format_label_value(val)
+                if is_valid(formatted_val):
+                    label_parts.append(formatted_val)
+            durchmesser = row_data.get("Durchmesser")
+            if is_valid(durchmesser):
+                label_parts.append(f"Ø {durchmesser}")
+            element_label = " | ".join(label_parts)
+            if len(guids) > 1:
+                element_label = f"{element_label} <span style='color: #999;'>({len(guids)} Elemente)</span>"
+            is_active = bool(active_guid) and active_guid in guids
+            active_style = "background-color: #fff3cd; padding: 0.15rem 0.35rem; border-radius: 4px;" if is_active else ""
+            st.markdown(
+                f"<div style='font-size: 1.1em; font-weight: bold; margin-bottom: 0.2em; text-align: left; width: 100%; {active_style}'>{element_label}</div>",
+                unsafe_allow_html=True,
+            )
+
+            matches = group["matches"]
+            options = [
+                f"{m.get('material')} (Score: {m.get('score'):.3f})" if m.get("score") is not None else m.get("material")
+                for m in matches
+            ]
+            material_lookup = {
+                f"{m.get('material')} (Score: {m.get('score'):.3f})" if m.get("score") is not None else m.get("material"): m.get("material")
+                for m in matches
+            }
+            scores = _get_score_lookup(matches)
+            existing_materials = {prev_sel.get(guid) for guid in guids if prev_sel.get(guid)}
+            if len(existing_materials) == 1:
+                default_material = next(iter(existing_materials))
+            else:
+                default_material = matches[0].get("material") if matches else None
+            if matches:
+                default_label = next((label for label, mat in material_lookup.items() if mat == default_material), options[0])
+            else:
+                default_label = "kein Vorschlag"
+
+            if options:
+                sel_label = st.selectbox(
+                    "Materialauswahl",
+                    options=options,
+                    index=(options.index(default_label) if default_label in options else 0),
+                    key=f"sel_group_{group_index}_{primary_guid}",
+                    on_change=set_active_guid,
+                    args=(primary_guid, guids),
+                    label_visibility="collapsed",
+                )
+            else:
+                sel_label = st.selectbox(
+                    "Materialauswahl",
+                    options=["kein Vorschlag"],
+                    index=0,
+                    key=f"sel_group_{group_index}_{primary_guid}",
+                    on_change=set_active_guid,
+                    args=(primary_guid, guids),
+                    label_visibility="collapsed",
+                )
+
+            sel_material = material_lookup.get(sel_label) if options else None
+            for guid in guids:
+                updates.append(
+                    {
+                        "GUID": guid,
+                        "Material KBOB": sel_material,
+                        "AI Score": scores.get(sel_material) if options else None,
+                    }
+                )
+
+        submitted = st.button("Auswahl speichern")
+        if submitted:
+            out = pd.DataFrame(updates)
+            out["SelectedOn"] = pd.Timestamp.utcnow().isoformat()
+            if jsonl_path is not None:
+                _update_jsonl_with_selection(jsonl_path, out)
+                with open(jsonl_path, "r", encoding="utf-8") as f:
+                    records = [json.loads(line) for line in f]
+                df_new = pd.DataFrame(records)
+                if df_new is not None and not df_new.empty and "index" in df_new.columns:
+                    df_new = df_new.drop(columns=["index"])
+                if df_new is not None and not df_new.empty:
+                    df_new = add_domain_defaults(df_new)
+                df_new, ubp_db_path = run_ubp_calculation(str(jsonl_path), df_new)
+                if df_new is None:
+                    st.error("UBP-Berechnung lieferte keine Daten.")
+                    st.stop()
+                else:
+                    st.session_state["data"] = df_new
+                    if ubp_db_path:
+                        st.session_state["ubp_db_path"] = ubp_db_path
+                    st.success("Auswahl gespeichert und in JSONL übernommen")
+            else:
+                st.error("Kein JSONL-Pfad gefunden. Auswahl konnte nicht gespeichert werden.")
+
+    if jsonl_path is not None:
+        sel_df = _load_selection_jsonl(jsonl_path)
+        merge_cols = [c for c in ["GUID", "Material KBOB", "AI Score"] if c in sel_df.columns]
+        merged = base.merge(sel_df[merge_cols], on="GUID", how="left")
+        st.subheader("Übersicht")
+        uebersicht = merged.rename(columns={"Description": "Beschrieb"})
+        df_display = uebersicht[["IfcEntity", "PredefinedType", "Name", "Beschrieb", "Durchmesser", "Material KBOB", "AI Score"]].copy()
+        if "AI Score" in df_display.columns:
+            df_display["AI Score"] = df_display["AI Score"].apply(lambda x: f"{x:.3f}" if pd.notna(x) else "")
+        st.dataframe(df_display, hide_index=True, width="stretch")
+    else:
+        st.info("Keine JSONL-Datei geladen. Keine Übersicht möglich.")
