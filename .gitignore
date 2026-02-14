@@ -61,6 +61,9 @@ static/
 data/
 .cache_material_index/
 
+# IFC-Viewer (ignore entire folder)
+Dashboard/ifc-viewer/
+
 # Node.js (falls JS-Viewer)
 node_modules/
 npm-debug.log*
