@@ -22,17 +22,24 @@ def apply_ubp_results(df: pd.DataFrame, results: list) -> pd.DataFrame:
     for src, dst in INDICATOR_DB_TO_COLUMN.items():
         if src in results_df.columns:
             results_df[dst] = results_df[src]
-    keep_cols = ["GUID"]
+    merge_keys = ["GUID"]
+    if "MaterialLayerIndex" in df.columns and "MaterialLayerIndex" in results_df.columns:
+        merge_keys.append("MaterialLayerIndex")
+
+    keep_cols = list(merge_keys)
     for src, dst in INDICATOR_DB_TO_COLUMN.items():
         if src in results_df.columns:
             keep_cols.append(src)
         if dst in results_df.columns:
             keep_cols.append(dst)
+    for diagnostic_col in ["Fehlende Berechnungsgrundlage", "Bezugsgröße", "Material (KBOB)"]:
+        if diagnostic_col in results_df.columns:
+            keep_cols.append(diagnostic_col)
     keep_cols = list(dict.fromkeys(keep_cols))
     results_df = results_df[keep_cols].copy()
-    merged = df.merge(results_df, on="GUID", how="left", suffixes=("", "_calc"))
-    indicator_columns = list(dict.fromkeys(list(INDICATOR_DB_TO_COLUMN.keys()) + list(INDICATOR_DB_TO_COLUMN.values())))
-    for col_name in indicator_columns:
+    merged = df.merge(results_df, on=merge_keys, how="left", suffixes=("", "_calc"))
+    merged_columns_to_resolve = [col for col in keep_cols if col not in merge_keys]
+    for col_name in merged_columns_to_resolve:
         calc_col = f"{col_name}_calc"
         if calc_col in merged.columns:
             if col_name in merged.columns:

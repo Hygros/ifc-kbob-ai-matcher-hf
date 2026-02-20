@@ -21,6 +21,7 @@ Dieses Projekt bietet eine Pipeline zur Extraktion, Analyse und Bewertung von Ba
 ## Wichtige Dateien
 
 - `run_ifc_sbert_pipeline.py`: Startet die gesamte Pipeline (IFC → JSONL → SBERT-Matching).
+- `Evaluation/export_sbert_queries_to_txt.py`: Exportiert die SBERT-Queries aus dem bestehenden Workflow in eine `.txt`.
 - `IFC_Extraction/IFC-extraction-main.py`: Extrahiert IFC-Elementdaten.
 - `SBERT/Sentence_Transformer_V00.py`: Führt das Material-Matching durch.
 - `calculate_ubp21_per_element.py`: Berechnet Umweltindikatoren pro Element.
@@ -41,12 +42,53 @@ Dieses Projekt bietet eine Pipeline zur Extraktion, Analyse und Bewertung von Ba
 
 2. **Wähle IFC-Datei**
 
+3. **Wähle die korrekte Zuordnung zur KBOB-Datenbank**
+
+4. **Bestaune die Resultate im Charts-Tab**
+
+## SBERT Laufzeit-Konfiguration
+
+Für `SBERT/Sentence_Transformer_V00.py` können Device- und Batch-Entscheidungen per Umgebungsvariablen gesteuert werden:
+
+- `SBERT_DEVICE=cpu|cuda`  
+  Erzwingt das Gerät. Ohne Override gilt: ab `SBERT_CUDA_QUERY_THRESHOLD` (Default `500`) und verfügbarer GPU wird `cuda` genutzt, sonst `cpu`.
+- `SBERT_BATCH_SIZE=<int>`  
+  Feste Batch-Size (höchste Priorität).
+- `SBERT_AUTO_BENCH_BATCH=1`  
+  Führt vor dem Matching einen Batch-Benchmark aus und verwendet die schnellste stabile Größe.
+- `SBERT_AUTO_HEURISTIC_BATCH=1` (Default aktiv)  
+  Verwendet feste Heuristik ohne Benchmark:
+  - `cuda` und `>=500` Queries → `128`
+  - `cpu` und `<=200` Queries → `16`
+  - sonst Default (`SBERT_BATCH_SIZE`, falls nicht gesetzt: `64`)
+- `SBERT_BENCH_BATCH_SIZES=16,32,64,128`  
+  Kandidaten für den Benchmark.
+- `SBERT_BENCH_SAMPLE_LIMIT=1500`  
+  Maximale Anzahl Queries für den Benchmark.
+
+Batch-Benchmark manuell starten:
+
+- `python SBERT/Sentence_Transformer_V00.py --benchmark-batch Dashboard/data/cuda-test.jsonl`
+
 ## Hinweise
 
-- Die SBERT-Modelle werden beim ersten Lauf automatisch heruntergeladen und gespeichert.
 - Die KBOB-Datenbank muss vorhanden und korrekt befüllt sein.
 - Für die Viewer-Integration wird Node.js/pnpm benötigt.
 
 ## Lizenz
 
 Noch ergänzen
+
+## Evaluation von Modellen
+
+- Komplette Pipeline (optional inkl. Query-Export): `python Evaluation/run_evaluation_pipeline.py --query-source <.ifc|.jsonl|.txt>`
+- Ohne `--query-source` öffnet die Pipeline eine Terminal-Auswahl aller `.ifc`, `.jsonl`, `.txt` im Projekt.
+- Ohne `--expected-file` fragt die Pipeline optional interaktiv nach einer `.txt` mit Expected-Materialien.
+- Nur Evaluation laufen lassen: `python Evaluation/evaluate_material_models.py`
+- Nur Report + Übersichtsgrafik erzeugen: `python Evaluation/build_evaluation_report.py`
+- Query-Export liegt standardmäßig unter `Evaluation/exports/queries/`.
+- Ergebnisse liegen unter `Evaluation/exports/model_evaluation/` als:
+  - `summary_*.csv`, `details_*.csv`
+  - `evaluation_report_*.md` (automatische Dokumentation)
+  - `overview_*.svg` (Übersichtsgrafik)
+  - `evaluation_report_latest.md`, `overview_latest.svg` (immer der neueste Stand)

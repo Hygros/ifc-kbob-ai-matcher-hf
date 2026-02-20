@@ -19,12 +19,18 @@ if APP_ROOT not in sys.path:
 
 
 @st.cache_resource(show_spinner=False)
-def preload_sbert_resources() -> bool:
+def preload_sbert_resources(model_name: str) -> bool:
     """Load SBERT model + DB corpus embeddings once per Streamlit server process."""
-    from SBERT.Sentence_Transformer_V00 import get_cached_corpus, get_global_sbert_model
+    import SBERT.Sentence_Transformer_V00 as sbert_mod
 
-    _ = get_global_sbert_model()
-    _ = get_cached_corpus()
+    try:
+        _ = sbert_mod.get_global_sbert_model(model_name=model_name)
+        _ = sbert_mod.get_cached_corpus(model_name=model_name)
+    except TypeError:
+        if hasattr(sbert_mod, "MODEL_NAME"):
+            sbert_mod.MODEL_NAME = model_name
+        _ = sbert_mod.get_global_sbert_model()
+        _ = sbert_mod.get_cached_corpus()
     return True
 
 
@@ -89,9 +95,12 @@ def save_ifc_for_viewer(uploaded_file) -> str | None:
     return safe_filename
 
 
-def parse_ifc(uploaded_file):
+def parse_ifc(uploaded_file, model_name: str):
     ifc_export_script = os.path.join(APP_ROOT, "IFC_Extraction", "IFC-extraction-main.py")
     python_exe = os.path.join(APP_ROOT, ".venv", "Scripts", "python.exe")
+    if hasattr(uploaded_file, "seek"):
+        uploaded_file.seek(0)
+
     with tempfile.NamedTemporaryFile(delete=False, suffix=".ifc") as tmp:
         tmp.write(uploaded_file.read())
         tmp_path = tmp.name
@@ -133,9 +142,14 @@ def parse_ifc(uploaded_file):
 
         target_jsonl_path = os.path.join(dashboard_data_dir, ifc_base + ".jsonl")
         if os.path.exists(jsonl_path):
-            from SBERT.Sentence_Transformer_V00 import run_sbert_matching
+            import SBERT.Sentence_Transformer_V00 as sbert_mod
 
-            run_sbert_matching(jsonl_path)
+            try:
+                sbert_mod.run_sbert_matching(jsonl_path, model_name=model_name)
+            except TypeError:
+                if hasattr(sbert_mod, "MODEL_NAME"):
+                    sbert_mod.MODEL_NAME = model_name
+                sbert_mod.run_sbert_matching(jsonl_path)
             shutil.copy(jsonl_path, target_jsonl_path)
             with open(target_jsonl_path, "r", encoding="utf-8") as f:
                 records = [json.loads(line) for line in f]
@@ -153,10 +167,10 @@ def parse_ifc(uploaded_file):
         return None, None
 
 
-def load_data(upload):
+def load_data(upload, model_name: str):
     if upload is None:
         return None, None
-    return parse_ifc(upload)
+    return parse_ifc(upload, model_name=model_name)
 
 
 def get_upload_key(upload) -> tuple | None:
@@ -164,4 +178,6 @@ def get_upload_key(upload) -> tuple | None:
         return None
     name = getattr(upload, "name", None)
     size = getattr(upload, "size", None)
-    return (name, size)
+    file_id = getattr(upload, "file_id", None)
+    upload_id = getattr(upload, "id", None)
+    return (name, size, file_id, upload_id)

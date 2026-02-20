@@ -171,12 +171,15 @@ def _first_numeric(entry, keys):
 def _create_result_table(cursor, columns):
     col_defs = ", ".join(
         [
-            f"[{col}] REAL" if col not in ["GUID", "Material (KBOB)", "Bezugsgröße", "Fehlende Berechnungsgrundlage"] else f"[{col}] TEXT"
+            f"[{col}] REAL" if col not in ["GUID", "MaterialLayerIndex", "Material (KBOB)", "Bezugsgröße", "Fehlende Berechnungsgrundlage"] else f"[{col}] TEXT"
             for col in columns
         ]
     )
     cursor.execute(f"CREATE TABLE Resultate ({col_defs})")
-    cursor.execute("CREATE UNIQUE INDEX IF NOT EXISTS idx_resultate_guid ON Resultate([GUID])")
+    cursor.execute(
+        "CREATE UNIQUE INDEX IF NOT EXISTS idx_resultate_guid_layer "
+        "ON Resultate([GUID], [MaterialLayerIndex])"
+    )
 
 
 def _ensure_result_table_schema(cursor, columns):
@@ -193,12 +196,22 @@ def _ensure_result_table_schema(cursor, columns):
         _create_result_table(cursor, columns)
         return
 
-    cursor.execute("CREATE UNIQUE INDEX IF NOT EXISTS idx_resultate_guid ON Resultate([GUID])")
+    cursor.execute("PRAGMA index_list(Resultate)")
+    existing_index_names = [row[1] for row in cursor.fetchall()]
+    if "idx_resultate_guid" in existing_index_names:
+        cursor.execute("DROP INDEX IF EXISTS idx_resultate_guid")
+
+    cursor.execute(
+        "CREATE UNIQUE INDEX IF NOT EXISTS idx_resultate_guid_layer "
+        "ON Resultate([GUID], [MaterialLayerIndex])"
+    )
 
 
 def _determine_reference_value(entry, material, material_vals):
     ifc_entity = str(entry.get("IfcEntity") or "").strip().lower()
     net_volume = entry.get("NetVolume")
+    gross_volume = entry.get("GrossVolume")
+    preferred_volume = net_volume if _to_float(net_volume) is not None else gross_volume
     length = entry.get("Length")
     ansichtsfläche = entry.get("Ansichtsfläche")
 
@@ -228,15 +241,15 @@ def _determine_reference_value(entry, material, material_vals):
                 return "Masse (kg)", direct_mass, None
 
         density_num = _to_float(material_vals.get(COLUMN_DENSITY))
-        net_volume_num = _to_float(net_volume)
+        net_volume_num = _to_float(preferred_volume)
         if density_num is not None and net_volume_num is not None:
             return "Masse (kg)", net_volume_num * density_num, None
         if net_volume_num is None:
-            return "Masse (kg)", None, "NetVolume fehlt fuer Umrechnung m3->kg"
+            return "Masse (kg)", None, "NetVolume/GrossVolume fehlt fuer Umrechnung m3->kg"
         return "Masse (kg)", None, "Rohdichte fehlt in DB"
 
-    value = _to_float(net_volume)
-    reason = None if value is not None else "NetVolume fehlt"
+    value = _to_float(preferred_volume)
+    reason = None if value is not None else "NetVolume/GrossVolume fehlt"
     return "NetVolume", value, reason
 
 
@@ -313,9 +326,12 @@ def calculate_ubp_for_jsonl(jsonl_path, export_dir=None, database_path=DATABASE_
     export_db_path = _resolve_export_db_path(jsonl_path, export_dir)
     for entry in entries:
         guid = entry.get("GUID")
+        layer_index = entry.get("MaterialLayerIndex")
         material = _normalize_material(_select_material(entry))
         material_vals = material_values.get(material, {})
         net_volume = entry.get("NetVolume")
+        gross_volume = entry.get("GrossVolume")
+        preferred_volume = net_volume if _to_float(net_volume) is not None else gross_volume
         length = entry.get("Length")
         ansichtsfläche = entry.get("Ansichtsfläche")
         count = entry.get("Count")
@@ -324,11 +340,13 @@ def calculate_ubp_for_jsonl(jsonl_path, export_dir=None, database_path=DATABASE_
 
         export_row = {
             "GUID": guid,
+            "MaterialLayerIndex": layer_index,
             "Material (KBOB)": material,
             "IfcEntity": entry.get("IfcEntity"),
             "Length": length,
             "Ansichtsfläche": ansichtsfläche,
-            "NetVolume": net_volume,
+            "NetVolume": preferred_volume,
+            "GrossVolume": gross_volume,
             "Count": count,
             "Weight": weight,
             "Masse (kg)": value_num if value_label == "Masse (kg)" else None,
@@ -355,10 +373,16 @@ def calculate_ubp_for_jsonl(jsonl_path, export_dir=None, database_path=DATABASE_
             values = [row.get(col, None) for col in columns]
             placeholders = ", ".join(["?" for _ in columns])
             col_list = ", ".join([f"[{col}]" for col in columns])
-            update_clause = ", ".join([f"[{col}]=excluded.[{col}]" for col in columns if col != "GUID"])
+            update_clause = ", ".join(
+                [
+                    f"[{col}]=excluded.[{col}]"
+                    for col in columns
+                    if col not in {"GUID", "MaterialLayerIndex"}
+                ]
+            )
             cursor.execute(
                 f"INSERT INTO Resultate ({col_list}) VALUES ({placeholders}) "
-                f"ON CONFLICT([GUID]) DO UPDATE SET {update_clause}",
+                f"ON CONFLICT([GUID], [MaterialLayerIndex]) DO UPDATE SET {update_clause}",
                 values,
             )
         conn.commit()

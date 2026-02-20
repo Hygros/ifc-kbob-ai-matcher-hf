@@ -18,6 +18,7 @@ Desktop.ini
 
 # Environment variables
 .env
+SBERT/.hf_token
 
 # Jupyter Notebook checkpoints
 .ipynb_checkpoints/

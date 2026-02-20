@@ -56,6 +56,9 @@ def clean_and_convert_value(val, field, units):
     if field == "NetVolume":
         volume_unit, volume_factor = units.get("VOLUMEUNIT", ("CUBIC_METRE", 1.0))
         return round(fval * volume_factor, 9)
+    if field == "GrossVolume":
+        volume_unit, volume_factor = units.get("VOLUMEUNIT", ("CUBIC_METRE", 1.0))
+        return round(fval * volume_factor, 9)
     if field == "AREA_PROJECTION_XY_NET":
         area_unit, area_factor = units.get("AREAUNIT", ("SQUARE_METRE", 1.0))
         return round(fval * area_factor, 6)
@@ -76,17 +79,21 @@ def process_ifc_file(ifc_file_path, property_fields, export_fields_for_csv):
         predefined_type = getattr(element, 'PredefinedType', None)
         guid = element.GlobalId if hasattr(element, 'GlobalId') else None
         extracted_properties = extract_fields_from_psets(property_sets, property_fields)
-        for key in ["Length", "NetVolume", "Durchmesser"]:
+        for key in ["Length", "NetVolume", "GrossVolume", "Durchmesser"]:
             if key in extracted_properties and extracted_properties[key] is not None:
                 extracted_properties[key] = clean_and_convert_value(extracted_properties[key], key, units)
+        if extracted_properties.get("NetVolume") is None and extracted_properties.get("GrossVolume") is not None:
+            extracted_properties["NetVolume"] = extracted_properties["GrossVolume"]
         filtered_properties = {key: value for key, value in extracted_properties.items() if value not in (None, "", [], {})}
         materials = extract_materials(model, element)
         material_names = [m["Name"] for m in materials if "Name" in m]
+        material_layer_thicknesses = list(dict.fromkeys(m["LayerThickness"] for m in materials if "LayerThickness" in m))
         element_dict = {
             "IfcEntity": ifc_entity,
             "PredefinedType": predefined_type,
             "Name": name,
             "Material": material_names,
+            "MaterialLayerThickness": material_layer_thicknesses,
             "GUID": guid,
             **filtered_properties
         }
@@ -109,6 +116,7 @@ def main():
         "ReinforcementStrengthClass",
         "Length",
         "NetVolume",
+        "GrossVolume",
         "Ansichtsfläche",
         "ReinforcementVolumeRatio",
     ]
@@ -117,6 +125,7 @@ def main():
         "PredefinedType",
         "Name",
         "Material",
+        "MaterialLayerThickness",
         "GUID",
         "comment",
         "Description",
@@ -129,6 +138,7 @@ def main():
         "ReinforcementStrengthClass",
         "Length",
         "NetVolume",
+        "GrossVolume",
         "Ansichtsfläche",
         "ReinforcementVolumeRatio"
     ]

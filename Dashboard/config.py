@@ -4,6 +4,20 @@ import pandas as pd
 CHART_HEIGHT = 700
 
 
+SBERT_MODEL_OPTIONS = [
+    "google/embeddinggemma-300m",
+    "BAAI/bge-m3",
+    "intfloat/multilingual-e5-large",
+    "intfloat/multilingual-e5-base",
+    "sentence-transformers/LaBSE",
+    "sentence-transformers/paraphrase-multilingual-mpnet-base-v2",
+    "sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2",
+    "sentence-transformers/distiluse-base-multilingual-cased-v2",
+]
+
+DEFAULT_SBERT_MODEL = "BAAI/bge-m3"
+
+
 INDICATOR_DEFINITIONS = [
     {
         "db_col": "UBP21Total",

@@ -1,0 +1,9 @@
+model,cases,top1_accuracy,top5_accuracy,mrr,avg_expected_score
+google/embeddinggemma-300m,10,1.000000,1.000000,1.000000,0.732938
+BAAI/bge-m3,10,0.800000,1.000000,0.883333,0.634842
+intfloat/multilingual-e5-large,10,1.000000,1.000000,1.000000,0.900948
+intfloat/multilingual-e5-base,10,1.000000,1.000000,1.000000,0.904484
+sentence-transformers/LaBSE,10,1.000000,1.000000,1.000000,0.636638
+sentence-transformers/paraphrase-multilingual-mpnet-base-v2,10,1.000000,1.000000,1.000000,0.812852
+sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2,10,0.000000,0.700000,0.322222,0.589098
+sentence-transformers/distiluse-base-multilingual-cased-v2,10,1.000000,1.000000,1.000000,0.585604

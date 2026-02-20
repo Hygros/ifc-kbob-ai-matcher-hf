@@ -2,18 +2,31 @@ import sqlite3
 from typing import List
 import torch
 import os
+from pathlib import Path
 from sentence_transformers import SentenceTransformer, SimilarityFunction
+from huggingface_hub import login
 
 # --- Configuration ---
 DATABASE_PATH = r"C:\Users\wpx619\AAA_Python_MTH\Ökobilanzdaten.sqlite3"
 TABLE_NAME = "Oekobilanzdaten"
 COLUMN_MATERIAL = "Material"
-MODEL_NAME = "all-MiniLM-L6-v2"  # Change model name here
+MODEL_NAME = "google/embeddinggemma-300m"  # Change model name here
+
+# google/embeddinggemma-300m
+# BAAI/bge-m3
+# intfloat/multilingual-e5-large
+# intfloat/multilingual-e5-base
+# sentence-transformers/LaBSE
+# sentence-transformers/paraphrase-multilingual-mpnet-base-v2
+# sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2
+# sentence-transformers/distiluse-base-multilingual-cased-v2
+
 MODEL_DIRECTORY = f"./models/{MODEL_NAME}"
 TOP_K_RESULTS = 10
 SIMILARITY_FUNCTION = SimilarityFunction.COSINE  # Alternatives: DOT_PRODUCT, EUCLIDEAN, MANHATTAN
 
 SBERT_DEVICE = os.environ.get("SBERT_DEVICE", "").strip().lower()
+HF_TOKEN_FILE = Path(__file__).with_name(".hf_token")
 
 EXAMPLE_QUERIES = [
     "IfcPile BORED Betonpfahl Beton Pfahlreihe Süd 900 Ortbeton",
@@ -48,6 +61,26 @@ def load_or_save_model() -> SentenceTransformer:
     model.save(MODEL_DIRECTORY)
     return model
 
+
+def get_hf_token() -> str:
+    token = os.environ.get("HF_TOKEN", "").strip()
+    if token:
+        return token
+    if HF_TOKEN_FILE.is_file():
+        return HF_TOKEN_FILE.read_text(encoding="utf-8").strip()
+    return ""
+
+
+def login_if_needed_for_model(model_name: str) -> None:
+    if model_name != "google/embeddinggemma-300m":
+        return
+    token = get_hf_token()
+    if not token:
+        raise RuntimeError(
+            "Missing Hugging Face token. Set HF_TOKEN env var or create SBERT/.hf_token (gitignored)."
+        )
+    login(token)
+
 # --- Main Function ---
 def find_most_similar_materials():
     print(f"Using model: {MODEL_NAME}")
@@ -76,4 +109,5 @@ def find_most_similar_materials():
         print("\n")
 
 if __name__ == "__main__":
+    login_if_needed_for_model(MODEL_NAME)
     find_most_similar_materials()

@@ -2,7 +2,7 @@ import json
 import os
 import re
 from pathlib import Path
-from urllib.parse import quote
+from urllib.parse import quote, urlencode
 
 import pandas as pd
 import streamlit as st
@@ -27,13 +27,48 @@ def _load_selection_jsonl(jsonl_path: Path) -> pd.DataFrame:
             selection_rows.append(
                 {
                     "GUID": rec.get("GUID"),
+                    "MaterialLayerIndex": rec.get("MaterialLayerIndex"),
                     "Material KBOB": rec.get("selected_kbob_material"),
                     "AI Score": rec.get("selected_ai_score"),
                     "SelectedOn": rec.get("selected_on"),
                 }
             )
         return pd.DataFrame(selection_rows)
-    return pd.DataFrame(columns=["GUID", "Material KBOB", "AI Score", "SelectedOn"])
+    return pd.DataFrame(columns=["GUID", "MaterialLayerIndex", "Material KBOB", "AI Score", "SelectedOn"])
+
+
+def _selection_key(guid, layer_index):
+    def _normalize_layer_index(value):
+        if pd.isna(value):
+            return None
+        if isinstance(value, bool):
+            return str(value)
+        if isinstance(value, int):
+            return str(value)
+        if isinstance(value, float):
+            if value.is_integer():
+                return str(int(value))
+            return str(value)
+        text = str(value).strip()
+        if not text:
+            return None
+        try:
+            numeric = float(text)
+            if numeric.is_integer():
+                return str(int(numeric))
+        except (TypeError, ValueError):
+            pass
+        return text
+
+    if pd.isna(guid):
+        return None
+    guid_str = str(guid).strip()
+    if not guid_str:
+        return None
+    normalized_layer_index = _normalize_layer_index(layer_index)
+    if normalized_layer_index is None:
+        return (guid_str, None)
+    return (guid_str, normalized_layer_index)
 
 
 def _update_jsonl_with_selection(jsonl_path: Path, selection_df: pd.DataFrame) -> None:
@@ -41,13 +76,18 @@ def _update_jsonl_with_selection(jsonl_path: Path, selection_df: pd.DataFrame) -
         return
     with open(jsonl_path, "r", encoding="utf-8") as f:
         records = [json.loads(line) for line in f]
-    selection_lookup = {row["GUID"]: row for _, row in selection_df.iterrows() if pd.notna(row["GUID"])}
+    selection_lookup = {}
+    for _, row in selection_df.iterrows():
+        key = _selection_key(row.get("GUID"), row.get("MaterialLayerIndex"))
+        if key is not None:
+            selection_lookup[key] = row
+
     for rec in records:
-        guid = rec.get("GUID")
-        if guid in selection_lookup:
-            rec["selected_kbob_material"] = selection_lookup[guid].get("Material KBOB")
-            rec["selected_ai_score"] = selection_lookup[guid].get("AI Score")
-            rec["selected_on"] = selection_lookup[guid].get("SelectedOn")
+        key = _selection_key(rec.get("GUID"), rec.get("MaterialLayerIndex"))
+        if key in selection_lookup:
+            rec["selected_kbob_material"] = selection_lookup[key].get("Material KBOB")
+            rec["selected_ai_score"] = selection_lookup[key].get("AI Score")
+            rec["selected_on"] = selection_lookup[key].get("SelectedOn")
     with open(jsonl_path, "w", encoding="utf-8") as f:
         for rec in records:
             f.write(json.dumps(rec, ensure_ascii=False) + "\n")
@@ -59,11 +99,19 @@ def _as_selection_dict(sel_df: pd.DataFrame) -> dict:
     )
     if material_col is None:
         return {}
-    return {row["GUID"]: row[material_col] for _, row in sel_df.iterrows()}
+    lookup = {}
+    for _, row in sel_df.iterrows():
+        key = _selection_key(row.get("GUID"), row.get("MaterialLayerIndex"))
+        if key is not None:
+            lookup[key] = row.get(material_col)
+    return lookup
 
 
 def _get_score_lookup(matches: list) -> dict:
     return {match.get("material"): match.get("score") for match in matches or []}
+
+
+NO_SELECTION_LABEL = "-- keine Auswahl --"
 
 
 def _render_viewer(ifc_filename: str | None, active_guid: str | None, active_guids: list[str]) -> None:
@@ -75,8 +123,11 @@ def _render_viewer(ifc_filename: str | None, active_guid: str | None, active_gui
 
     if ifc_path and os.path.exists(ifc_path):
         ensure_static_server(static_dir, port=8080)
-        file_url = f"http://127.0.0.1:8080/{quote(str(ifc_filename))}"
-        viewer_url = f"http://localhost:3000/?file_url={file_url}"
+        file_stat = os.stat(ifc_path)
+        cache_bust = f"{file_stat.st_mtime_ns}-{file_stat.st_size}"
+        file_url = f"http://127.0.0.1:8080/{quote(str(ifc_filename))}?v={cache_bust}"
+        viewer_query = urlencode({"file_url": file_url, "v": cache_bust})
+        viewer_url = f"http://localhost:3000/?{viewer_query}"
 
         st.markdown(
             f"<div class='viewer-sticky'><iframe class='viewer-iframe' src='{viewer_url}'></iframe></div>",
@@ -183,7 +234,7 @@ def render_tab_ai_mapping(df: pd.DataFrame | None) -> None:
 
     with left_col:
         active_guid = st.session_state.get("viewer_selected_guid") if isinstance(st.session_state.get("viewer_selected_guid"), str) else None
-        base_cols = ["IfcEntity", "PredefinedType", "Name", "GUID", "Description", "Material", "Durchmesser", "top_k_matches"]
+        base_cols = ["IfcEntity", "PredefinedType", "Name", "GUID", "MaterialLayerIndex", "Description", "Material", "Durchmesser", "top_k_matches"]
         if df is not None and hasattr(df, "columns"):
             for col in base_cols:
                 if col not in df.columns:
@@ -198,11 +249,26 @@ def render_tab_ai_mapping(df: pd.DataFrame | None) -> None:
             st.stop()
 
         jsonl_path = _get_jsonl_path()
+
+        data_version = st.session_state.get("ai_mapping_data_version", 0)
+        refresh_token = (
+            data_version,
+            st.session_state.get("last_processing_key"),
+            st.session_state.get("jsonl_path"),
+            len(base),
+        )
+        previous_token = st.session_state.get("ai_mapping_last_rendered_token")
+        if previous_token != refresh_token:
+            stale_keys = [key for key in st.session_state.keys() if str(key).startswith("sel_group_")]
+            for key in stale_keys:
+                del st.session_state[key]
+            st.session_state["ai_mapping_last_rendered_token"] = refresh_token
+
         if jsonl_path is not None:
             sel_df = _load_selection_jsonl(jsonl_path)
             prev_sel = _as_selection_dict(sel_df)
         else:
-            sel_df = pd.DataFrame(columns=["GUID", "Material KBOB", "AI Score", "SelectedOn"])
+            sel_df = pd.DataFrame(columns=["GUID", "MaterialLayerIndex", "Material KBOB", "AI Score", "SelectedOn"])
             prev_sel = {}
 
         grouped_base = build_ai_mapping_groups(base)
@@ -214,6 +280,7 @@ def render_tab_ai_mapping(df: pd.DataFrame | None) -> None:
             if not guids:
                 continue
             primary_guid = guids[0]
+            layer_index = row_data.get("MaterialLayerIndex")
 
             def is_valid(value):
                 if value is None:
@@ -251,7 +318,7 @@ def render_tab_ai_mapping(df: pd.DataFrame | None) -> None:
             )
 
             matches = group["matches"]
-            options = [
+            material_options = [
                 f"{m.get('material')} (Score: {m.get('score'):.3f})" if m.get("score") is not None else m.get("material")
                 for m in matches
             ]
@@ -259,45 +326,48 @@ def render_tab_ai_mapping(df: pd.DataFrame | None) -> None:
                 f"{m.get('material')} (Score: {m.get('score'):.3f})" if m.get("score") is not None else m.get("material"): m.get("material")
                 for m in matches
             }
+            options = [NO_SELECTION_LABEL] + material_options
             scores = _get_score_lookup(matches)
-            existing_materials = {prev_sel.get(guid) for guid in guids if prev_sel.get(guid)}
-            if len(existing_materials) == 1:
-                default_material = next(iter(existing_materials))
+            stored_materials = []
+            for guid in guids:
+                selection_key = _selection_key(guid, layer_index)
+                if selection_key in prev_sel:
+                    value = prev_sel.get(selection_key)
+                    if pd.isna(value):
+                        value = None
+                    stored_materials.append(value)
+
+            if stored_materials and len(stored_materials) == len(guids):
+                unique_materials = {"__NONE__" if value is None else value for value in stored_materials}
+                if len(unique_materials) == 1 and stored_materials[0] is not None:
+                    default_material = stored_materials[0]
+                else:
+                    default_material = matches[0].get("material") if matches else None
             else:
                 default_material = matches[0].get("material") if matches else None
-            if matches:
-                default_label = next((label for label, mat in material_lookup.items() if mat == default_material), options[0])
+            if default_material:
+                default_label = next((label for label, mat in material_lookup.items() if mat == default_material), NO_SELECTION_LABEL)
             else:
-                default_label = "kein Vorschlag"
+                default_label = NO_SELECTION_LABEL
 
-            if options:
-                sel_label = st.selectbox(
-                    "Materialauswahl",
-                    options=options,
-                    index=(options.index(default_label) if default_label in options else 0),
-                    key=f"sel_group_{group_index}_{primary_guid}",
-                    on_change=set_active_guid,
-                    args=(primary_guid, guids),
-                    label_visibility="collapsed",
-                )
-            else:
-                sel_label = st.selectbox(
-                    "Materialauswahl",
-                    options=["kein Vorschlag"],
-                    index=0,
-                    key=f"sel_group_{group_index}_{primary_guid}",
-                    on_change=set_active_guid,
-                    args=(primary_guid, guids),
-                    label_visibility="collapsed",
-                )
+            sel_label = st.selectbox(
+                "Materialauswahl",
+                options=options,
+                index=(options.index(default_label) if default_label in options else 0),
+                key=f"sel_group_{data_version}_{group_index}_{primary_guid}",
+                on_change=set_active_guid,
+                args=(primary_guid, guids),
+                label_visibility="collapsed",
+            )
 
-            sel_material = material_lookup.get(sel_label) if options else None
+            sel_material = None if sel_label == NO_SELECTION_LABEL else material_lookup.get(sel_label)
             for guid in guids:
                 updates.append(
                     {
                         "GUID": guid,
+                        "MaterialLayerIndex": layer_index,
                         "Material KBOB": sel_material,
-                        "AI Score": scores.get(sel_material) if options else None,
+                        "AI Score": scores.get(sel_material) if sel_material else None,
                     }
                 )
 
@@ -320,6 +390,7 @@ def render_tab_ai_mapping(df: pd.DataFrame | None) -> None:
                     st.stop()
                 else:
                     st.session_state["data"] = df_new
+                    st.session_state["ai_mapping_data_version"] = st.session_state.get("ai_mapping_data_version", 0) + 1
                     if ubp_db_path:
                         st.session_state["ubp_db_path"] = ubp_db_path
                     st.success("Auswahl gespeichert und in JSONL übernommen")
@@ -328,8 +399,12 @@ def render_tab_ai_mapping(df: pd.DataFrame | None) -> None:
 
     if jsonl_path is not None:
         sel_df = _load_selection_jsonl(jsonl_path)
-        merge_cols = [c for c in ["GUID", "Material KBOB", "AI Score"] if c in sel_df.columns]
-        merged = base.merge(sel_df[merge_cols], on="GUID", how="left")
+        if "MaterialLayerIndex" in base.columns and "MaterialLayerIndex" in sel_df.columns:
+            merge_cols = [c for c in ["GUID", "MaterialLayerIndex", "Material KBOB", "AI Score"] if c in sel_df.columns]
+            merged = base.merge(sel_df[merge_cols], on=["GUID", "MaterialLayerIndex"], how="left")
+        else:
+            merge_cols = [c for c in ["GUID", "Material KBOB", "AI Score"] if c in sel_df.columns]
+            merged = base.merge(sel_df[merge_cols], on="GUID", how="left")
         st.subheader("Übersicht")
         uebersicht = merged.rename(columns={"Description": "Beschrieb"})
         df_display = uebersicht[["IfcEntity", "PredefinedType", "Name", "Beschrieb", "Durchmesser", "Material KBOB", "AI Score"]].copy()

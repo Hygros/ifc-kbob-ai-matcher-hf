@@ -27,8 +27,8 @@ def render_header_metrics(df) -> None:
         except Exception:
             num_uploads = "–"
 
-        c1.metric("Elements", f"{num_elements}")
-        c2.metric("Uploads", f"{num_uploads}")
-        c3.metric("Materials", f"{num_materials}")
+        c1.metric("Elements in current IFC", f"{num_elements}")
+        c2.metric("Total Uploaded IFC-Files", f"{num_uploads}")
+        c3.metric("Nr of different Materials in the IFC", f"{num_materials}")
     with right:
         pass

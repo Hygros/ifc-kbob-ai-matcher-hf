@@ -231,6 +231,7 @@ def build_psets_output_lines(model, elements):
         psets = ifcopenshell.util.element.get_psets(element)
         materials = extract_materials(model, element)
         material_names = [m["Name"] for m in materials if "Name" in m]
+        material_layer_thicknesses = list(dict.fromkeys(m["LayerThickness"] for m in materials if "LayerThickness" in m))
 
         output_lines.append(f"IfcEntity: {ifc_entity}")
         output_lines.append(f"PredefinedType: {predefined_type}")
@@ -238,6 +239,7 @@ def build_psets_output_lines(model, elements):
         output_lines.append(f"Description: {description}")
         output_lines.append(f"GUID: {guid}")
         output_lines.append(f"Material: {', '.join(material_names)}")
+        output_lines.append(f"MaterialLayerThickness: {', '.join(str(v) for v in material_layer_thicknesses)}")
 
         output_lines.append("Property sets:")
         output_lines.append(str(psets))

@@ -10,11 +10,20 @@ def add_domain_defaults(df: pd.DataFrame) -> pd.DataFrame:
         "ifc_entity": "IfcEntity",
         "element_name": "Name",
         "ifc_material": "Material",
-        "volume_m3": "NetVolume",
     }
     for old, new in colmap.items():
         if old not in df.columns and new in df.columns:
             df[old] = df[new]
+
+    if "volume_m3" not in df.columns:
+        if "NetVolume" in df.columns:
+            df["volume_m3"] = df["NetVolume"]
+            if "GrossVolume" in df.columns:
+                df["volume_m3"] = df["volume_m3"].fillna(df["GrossVolume"])
+        elif "GrossVolume" in df.columns:
+            df["volume_m3"] = df["GrossVolume"]
+    elif "GrossVolume" in df.columns and "NetVolume" in df.columns:
+        df["volume_m3"] = df["volume_m3"].fillna(df["NetVolume"]).fillna(df["GrossVolume"])
 
     if "kbob_material" not in df.columns:
         df["kbob_material"] = df["ifc_material"] if "ifc_material" in df.columns else None
@@ -72,7 +81,7 @@ def _normalize_top_k_matches(matches) -> list[dict]:
 
 
 def build_ai_mapping_groups(base_df: pd.DataFrame) -> list[dict]:
-    fields = ["IfcEntity", "PredefinedType", "Name", "Description", "Material", "Durchmesser"]
+    fields = ["IfcEntity", "PredefinedType", "Name", "Description", "Material", "Durchmesser", "MaterialLayerIndex"]
     groups: dict[tuple, dict] = {}
     for _, row in base_df.iterrows():
         row_dict = row.to_dict()
