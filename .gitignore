@@ -74,6 +74,7 @@ yarn-error.log*
 
 # IFC/Export/Resultate
 IFC-Modelle/Resultate_UBP_Berechnung/
+IFC-Modelle/AFRY/
 
 # SBERT-Models
 models/
