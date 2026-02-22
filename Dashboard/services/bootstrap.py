@@ -20,6 +20,8 @@ def initialize_app_runtime() -> None:
         st.session_state["preloaded_sbert_model"] = st.session_state["selected_sbert_model"]
 
     if "viewer_server_started" not in st.session_state:
-        viewer_root = os.path.join(os.path.dirname(os.path.dirname(__file__)), "ifc-viewer", "ifc-lite")
+        viewer_root = os.path.join(os.path.dirname(os.path.dirname(__file__)), "ifc-lite")
+        if not os.path.isdir(viewer_root):
+            viewer_root = os.path.join(os.path.dirname(os.path.dirname(__file__)), "ifc-viewer", "ifc-lite")
         ensure_ifclite_viewer(viewer_root, port=3000)
         st.session_state["viewer_server_started"] = True

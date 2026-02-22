@@ -312,8 +312,9 @@ def render_tab_ai_mapping(df: pd.DataFrame | None) -> None:
                 element_label = f"{element_label} <span style='color: #999;'>({len(guids)} Elemente)</span>"
             is_active = bool(active_guid) and active_guid in guids
             active_style = "background-color: #fff3cd; padding: 0.15rem 0.35rem; border-radius: 4px;" if is_active else ""
+            guid_attr = ",".join(str(guid).replace("'", "") for guid in guids)
             st.markdown(
-                f"<div style='font-size: 1.1em; font-weight: bold; margin-bottom: 0.2em; text-align: left; width: 100%; {active_style}'>{element_label}</div>",
+                f"<div class='ai-map-group-label' data-guids='{guid_attr}' style='font-size: 1.1em; font-weight: bold; margin-bottom: 0.2em; text-align: left; width: 100%; {active_style}'>{element_label}</div>",
                 unsafe_allow_html=True,
             )
 
