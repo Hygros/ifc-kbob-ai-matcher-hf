@@ -1,6 +1,7 @@
 sentence-transformers
 numpy
 pandas
+scikit-learn
 faiss-cpu
 requests
 beautifulsoup4

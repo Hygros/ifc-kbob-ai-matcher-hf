@@ -84,6 +84,11 @@ Noch ergänzen
 - Komplette Pipeline (optional inkl. Query-Export): `python Evaluation/run_evaluation_pipeline.py --query-source <.ifc|.jsonl|.txt>`
 - Ohne `--query-source` öffnet die Pipeline eine Terminal-Auswahl aller `.ifc`, `.jsonl`, `.txt` im Projekt.
 - Ohne `--expected-file` fragt die Pipeline optional interaktiv nach einer `.txt` mit Expected-Materialien.
+- Format `--expected-file` (eine Zeile pro Query):
+  - Ein einzelner Treffer: `Tiefgründung Ortbetonbohrpfahl 900`
+  - Mehrere mögliche Treffer: `Material A | Material B | Material C`
+  - Mehrere Treffer mit Relevanz: `Material A::1.0 | Material B::0.7 | Material C::0.3`
+  - Ohne `::Relevanz` gilt automatisch `1.0`.
 - Nur Evaluation laufen lassen: `python Evaluation/evaluate_material_models.py`
 - Nur Report + Übersichtsgrafik erzeugen: `python Evaluation/build_evaluation_report.py`
 - Query-Export liegt standardmäßig unter `Evaluation/exports/queries/`.
