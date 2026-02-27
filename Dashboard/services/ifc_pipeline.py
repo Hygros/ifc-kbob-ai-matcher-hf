@@ -34,6 +34,16 @@ def preload_sbert_resources(model_name: str) -> bool:
     return True
 
 
+@st.cache_resource(show_spinner=False)
+def preload_cross_encoder_resources(model_name: str) -> bool:
+    """Load Cross-Encoder model once per Streamlit server process."""
+    import SBERT.Sentence_Transformer_V00 as sbert_mod
+
+    device = sbert_mod.resolve_runtime_device(0)
+    sbert_mod.load_or_get_cross_encoder(model_name=model_name, device=device)
+    return True
+
+
 def to_safe_filename(name: str) -> str:
     base, ext = os.path.splitext(name)
     replacements = {
@@ -95,7 +105,7 @@ def save_ifc_for_viewer(uploaded_file) -> str | None:
     return safe_filename
 
 
-def parse_ifc(uploaded_file, model_name: str):
+def parse_ifc(uploaded_file, model_name: str, cross_encoder_model_name: str | None = None):
     ifc_export_script = os.path.join(APP_ROOT, "IFC_Extraction", "IFC-extraction-main.py")
     python_exe = os.path.join(APP_ROOT, ".venv", "Scripts", "python.exe")
     if hasattr(uploaded_file, "seek"):
@@ -145,7 +155,11 @@ def parse_ifc(uploaded_file, model_name: str):
             import SBERT.Sentence_Transformer_V00 as sbert_mod
 
             try:
-                sbert_mod.run_sbert_matching(jsonl_path, model_name=model_name)
+                sbert_mod.run_sbert_matching(
+                    jsonl_path,
+                    model_name=model_name,
+                    cross_encoder_model_name=cross_encoder_model_name,
+                )
             except TypeError:
                 if hasattr(sbert_mod, "MODEL_NAME"):
                     sbert_mod.MODEL_NAME = model_name
@@ -167,10 +181,10 @@ def parse_ifc(uploaded_file, model_name: str):
         return None, None
 
 
-def load_data(upload, model_name: str):
+def load_data(upload, model_name: str, cross_encoder_model_name: str | None = None):
     if upload is None:
         return None, None
-    return parse_ifc(upload, model_name=model_name)
+    return parse_ifc(upload, model_name=model_name, cross_encoder_model_name=cross_encoder_model_name)
 
 
 def get_upload_key(upload) -> tuple | None:

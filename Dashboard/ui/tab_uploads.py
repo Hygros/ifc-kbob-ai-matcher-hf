@@ -4,11 +4,12 @@ import os
 import pandas as pd
 import streamlit as st
 
-from Dashboard.config import DEFAULT_SBERT_MODEL, SBERT_MODEL_OPTIONS
+from Dashboard.config import DEFAULT_SBERT_MODEL, SBERT_MODEL_OPTIONS, DEFAULT_CROSS_ENCODER_MODEL, CROSS_ENCODER_MODEL_OPTIONS
 from Dashboard.domain.mapping import add_domain_defaults
 from Dashboard.services.ifc_pipeline import (
     get_upload_key,
     load_data,
+    preload_cross_encoder_resources,
     preload_sbert_resources,
     resolve_ifc_for_jsonl,
     save_ifc_for_viewer,
@@ -58,6 +59,35 @@ def render_tab_uploads() -> None:
 
     active_model_display = st.session_state.get("selected_sbert_model", DEFAULT_SBERT_MODEL)
     st.caption(f"Aktives SBERT-Modell: {active_model_display}")
+
+    # --- Cross-Encoder Reranking ---
+    use_cross_encoder = st.checkbox(
+        "Cross-Encoder Reranking aktivieren",
+        key="use_cross_encoder",
+        help=(
+            "Nach dem Bi-Encoder (SBERT) werden die Top-K Treffer zusätzlich mit einem "
+            "Cross-Encoder re-ranked. Höhere Qualität, aber langsamere Verarbeitung."
+        ),
+    )
+    if use_cross_encoder:
+        if st.session_state.get("selected_cross_encoder_model") not in CROSS_ENCODER_MODEL_OPTIONS:
+            st.session_state["selected_cross_encoder_model"] = DEFAULT_CROSS_ENCODER_MODEL
+        selected_ce_model = st.selectbox(
+            "Cross-Encoder Modell",
+            options=CROSS_ENCODER_MODEL_OPTIONS,
+            key="selected_cross_encoder_model",
+            help="Modell für Cross-Encoder Re-Ranking nach dem Bi-Encoder Matching.",
+        )
+        preloaded_ce_model = st.session_state.get("preloaded_cross_encoder_model")
+        if selected_ce_model != preloaded_ce_model:
+            with st.spinner(f"Lade Cross-Encoder Modell: {selected_ce_model}..."):
+                preload_cross_encoder_resources(selected_ce_model)
+            st.session_state["preloaded_cross_encoder_model"] = selected_ce_model
+            st.success(f"Cross-Encoder Modell aktiv: {selected_ce_model}")
+        active_ce_model = st.session_state.get("selected_cross_encoder_model", DEFAULT_CROSS_ENCODER_MODEL)
+        st.caption(f"Aktives Cross-Encoder Modell: {active_ce_model}")
+    else:
+        active_ce_model = None
 
     last_used_model = st.session_state.get("last_used_sbert_model_for_matching")
     if last_used_model:
@@ -110,7 +140,7 @@ def render_tab_uploads() -> None:
         loaded_path = upload.name if hasattr(upload, "name") else str(upload)
         ifc_filename = save_ifc_for_viewer(upload)
         with st.spinner("IFC-Datei wird verarbeitet und exportiert..."):
-            df, jsonl_path = load_data(upload, model_name=active_model)
+            df, jsonl_path = load_data(upload, model_name=active_model, cross_encoder_model_name=active_ce_model)
         if df is not None:
             _clear_previous_mapping_selection(str(jsonl_path) if jsonl_path else None)
             if jsonl_path:

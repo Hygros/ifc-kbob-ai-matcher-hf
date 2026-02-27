@@ -1,8 +1,15 @@
-import streamlit as st
 import sys
+import os
 
-# python -m streamlit run Dashboard/app_with_viewer.py
+# python -m streamlit run Dashboard/app_with_viewer.py --server.port 8501
 
+if __name__ == "__main__" and not os.environ.get("_ST_LAUNCHED"):
+    import subprocess
+    env = {**os.environ, "_ST_LAUNCHED": "1"}
+    subprocess.run([sys.executable, "-m", "streamlit", "run", __file__, "--server.port", "8501"], env=env)
+    sys.exit(0)
+
+import streamlit as st
 from pathlib import Path
 
 APP_ROOT = Path(__file__).resolve().parents[1]

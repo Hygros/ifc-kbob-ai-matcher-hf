@@ -2,8 +2,8 @@ import os
 
 import streamlit as st
 
-from Dashboard.config import DEFAULT_SBERT_MODEL
-from Dashboard.services.ifc_pipeline import preload_sbert_resources
+from Dashboard.config import DEFAULT_SBERT_MODEL, DEFAULT_CROSS_ENCODER_MODEL
+from Dashboard.services.ifc_pipeline import preload_sbert_resources, preload_cross_encoder_resources
 from Dashboard.services.viewer import ensure_ifclite_viewer
 
 
@@ -18,6 +18,13 @@ def initialize_app_runtime() -> None:
             preload_sbert_resources(st.session_state["selected_sbert_model"])
         st.session_state["sbert_preloaded"] = True
         st.session_state["preloaded_sbert_model"] = st.session_state["selected_sbert_model"]
+
+    # Pre-warm Cross-Encoder if it was already enabled in a previous session
+    if st.session_state.get("use_cross_encoder") and "preloaded_cross_encoder_model" not in st.session_state:
+        ce_model = st.session_state.get("selected_cross_encoder_model", DEFAULT_CROSS_ENCODER_MODEL)
+        with st.spinner(f"Cross-Encoder Modell wird geladen: {ce_model}..."):
+            preload_cross_encoder_resources(ce_model)
+        st.session_state["preloaded_cross_encoder_model"] = ce_model
 
     if "viewer_server_started" not in st.session_state:
         viewer_root = os.path.join(os.path.dirname(os.path.dirname(__file__)), "ifc-lite")

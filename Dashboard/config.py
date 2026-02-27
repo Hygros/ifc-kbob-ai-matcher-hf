@@ -17,6 +17,15 @@ SBERT_MODEL_OPTIONS = [
 
 DEFAULT_SBERT_MODEL = "BAAI/bge-m3"
 
+# --- Cross-Encoder (Re-Ranking) ---
+DEFAULT_CROSS_ENCODER_MODEL = "jinaai/jina-reranker-v2-base-multilingual"
+
+CROSS_ENCODER_MODEL_OPTIONS = [
+    "jinaai/jina-reranker-v2-base-multilingual",   # 278M | 100 Sprachen | DE+EN optimiert
+    "BAAI/bge-reranker-v2-m3",                      # 568M | Multilingual  | stärkstes Modell
+    "cross-encoder/mmarco-mMiniLMv2-L12-H384-v1",  # 117M | 26 Sprachen   | schnelle Baseline
+]
+
 
 INDICATOR_DEFINITIONS = [
     {

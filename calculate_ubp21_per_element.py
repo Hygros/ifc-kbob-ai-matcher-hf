@@ -8,139 +8,21 @@ from tkinter import filedialog
 # --- Konfiguration ---
 DATABASE_PATH = r"C:\Users\wpx619\AAA_Python_MTH\Ökobilanzdaten.sqlite3"
 TABLE_NAME = "Oekobilanzdaten"
+
+COLUMN_UUID = "UUID"
 COLUMN_MATERIAL = "Material"
 COLUMN_DENSITY = "Rohdichte"
-# Alle relevanten Spalten für Berechnung
-COLUMNS_TO_CALC = [
-    "UBP21Total",
-    "UBP21Herstellung",
-    "UBP21Entsorgung",
-    "PrimärenergiegesamtTotalkWhoil-eq",
-    "PrimärenergiegesamtHerstellungtotalkWhoil-eq",
-    "PrimärenergiegesamtEntsorgungkWhoil-eq",
-    "PrimärenergiegesamtHerstellungenergetischgenutztkWhoil-eq",
-    "PrimärenergiegesamtHerstellungstofflichgenutztkWhoil-eq",
-    "PrimärenergieerneuerbarTotalkWhoil-eq",
-    "PrimärenergieerneuerbarHerstellungtotalkWhoil-eq",
-    "PrimärenergieerneuerbarHerstellungenergetischgenutztkWhoil-eq",
-    "PrimärenergieerneuerbarHerstellungstofflichgenutztkWhoil-eq",
-    "nichterneuerbar(GraueEnergie)TotalkWhoil-eq",
-    "nichterneuerbar(GraueEnergie)HerstellungtotalkWhoil-eq",
-    "nichterneuerbar(GraueEnergie)HerstellungenergetischgenutztkWhoil-eq",
-    "nichterneuerbar(GraueEnergie)HerstellungstofflichgenutztkWhoil-eq",
-    "nichterneuerbar(GraueEnergie)EntsorgungkWhoil-eq",
-    "TreibhausgasemissionenTotalkgCO2-eq",
-    "TreibhausgasemissionenHerstellungkgCO2-eq",
-    "TreibhausgasemissionenEntsorgungkgCO2-eq",
-    "BiogenerKohlenstoffimProduktenthaltenkgC"
-]
+COLUMN_BEZUG = "Bezug"
+COLUMN_UNIT = "Einheit"
+
+# Spalten, die keine Berechnungsspalten sind und beim dynamischen Abruf ignoriert werden
+METADATA_COLUMNS = {COLUMN_UUID, COLUMN_MATERIAL, COLUMN_DENSITY, COLUMN_BEZUG, COLUMN_UNIT}
 
 DEFAULT_EXPORT_DIR = os.path.join(
     os.path.dirname(__file__),
     "IFC-Modelle",
     "Resultate_UBP_Berechnung",
 )
-
-
-LENGTH_MATERIALS = {
-    "Tiefgründung Mikrobohrpfahl",
-    "Tiefgründung Ortbetonbohrpfahl 700",
-    "Tiefgründung Ortbetonbohrpfahl 900",
-    "Tiefgründung Ortbetonbohrpfahl 1200",
-    "Tiefgründung Ortbetonverdrängungspfahl 560/480",
-    "Tiefgründung Ortbetonverdrängungspfahl 660/580",
-    "Tiefgründung Rüttelstopfsäule",
-    "Tiefgründung Vorgefertigter Betonpfahl",
-}
-
-AREA_MATERIALS = {
-    "Baugrubensicherung Bohrpfahlwand gespriesst",
-    "Baugrubensicherung Bohrpfahlwand unverankert",
-    "Baugrubensicherung Bohrpfahlwand verankert",
-    "Baugrubensicherung Nagelwand",
-    "Baugrubensicherung Rühlwand auskragend",
-    "Baugrubensicherung Rühlwand gespriesst",
-    "Baugrubensicherung Rühlwand verankert",
-    "Baugrubensicherung Schlitzwand 400",
-    "Baugrubensicherung Schlitzwand 800",
-    "Baugrubensicherung Spundwand auskragend",
-    "Baugrubensicherung Spundwand gespriesst",
-    "Baugrubensicherung Spundwand verankert",
-    "2K-Fliessbelag Epoxidharz",
-    "Gussasphalt",
-    "Bitumenemulsion",
-}
-
-KG_MATERIALS = {
-    "Magerbeton",
-    "Tiefbaubeton",
-    "Bohrpfahlbeton",
-    "Betonfertigteil hochfest",
-    "Betonfertigteil normalfest",
-    "Kies gebrochen",
-    "Rundkies",
-    "Sand",
-    "Baukleber Einbettmörtel mineralisch",
-    "Baukleber Einbettmörtel organisch",
-    "Aluminiumblech blank",
-    "Aluminiumprofil blank",
-    "Armierungsstahl",
-    "Blei",
-    "Chromnickelstahlblech blank",
-    "Chromnickelstahlblech verzinnt",
-    "Chromstahlblech blank",
-    "Chromstahlblech verzinnt",
-    "Kupferblech blank",
-    "Messing-/Baubronzeblech",
-    "Stahlblech blank",
-    "Stahlblech verzinkt",
-    "Stahlprofil blank",
-    "3- und 5-Schicht Massivholzplatte",
-    "Balkenschichtholz",
-    "Brettschichtholz",
-    "Brettsperrholz",
-    "Furniersperrholz",
-    "Hartfaserplatte",
-    "Holzwolle-Leichtbauplatte zementgebunden",
-    "Konstruktionsvollholz",
-    "Massivholz Buche Eiche kammergetrocknet gehobelt",
-    "Massivholz Buche Eiche kammergetrocknet rau",
-    "Massivholz Buche Eiche luftgetrocknet rau",
-    "Massivholz Fichte Tanne Lärche kammergetrocknet gehobelt",
-    "Massivholz Fichte Tanne Lärche luftgetrocknet gehobelt",
-    "Massivholz Fichte Tanne Lärche luftgetrocknet rau",
-    "Mitteldichte Faserplatte MDF Harnstoff-Formaldehyd-gebunden",
-    "OSB Platte Phenol-Formaldehyd-gebunden Feuchtbereich",
-    "Spanplatte Phenol-Formaldehyd-gebunden Feuchtbereich",
-    "Spanplatte Harnstoff-Formaldehyd-gebunden beschichtet Trockenbereich",
-    "Spanplatte Harnstoff-Formaldehyd-gebunden Trockenbereich",
-    "Sperrholz Multiplex Phenol-Formaldehyd-gebunden Feuchtbereich",
-    "Sperrholz Multiplex Harnstoff-Formaldehyd-gebunden Trockenbereich",
-    "2-Komponenten Klebstoff",
-    "Heissbitumen",
-    "Kautschukdichtungsmasse",
-    "Polysulfiddichtungsmasse",
-    "Silicon-Fugenmasse",
-    "Dichtungsbahn bituminös",
-    "Dichtungsbahn Gummi EPDM",
-    "Dichtungsbahn Polyolefin FPO",
-    "Kraftpapier",
-    "Polyethylenfolie PE",
-    "Polyethylenvlies PE",
-    "Polystyrol expandiert EPS",
-    "Polystyrol extrudiert XPS",
-    "Polyurethan PUR PIR",
-    "Acrylnitril-Butadien-Styrol ABS",
-    "Gusseisen",
-    "Polyethylen PE",
-    "Polypropylen PP",
-    "Polyvinylchlorid PVC",
-    "Plexiglas PMMA Acrylglas",
-    "Polyamid PA glasfaserverstärkt",
-    "Polycarbonat PC",
-    "Polyester UP glasfaserverstärkt",
-    "Polystyrol PS",
-}
 
 KG_DIRECT_FIELDS = [
     "Masse",
@@ -150,6 +32,19 @@ KG_DIRECT_FIELDS = [
     "GrossWeight",
     "Menge",
 ]
+
+# Schichtdicken-Regeln für IfcCovering (Keyword -> Dicke in Meter).
+# Keywords werden gegen Description, Name und Material (lowercase) geprüft.
+# Reihenfolge ist relevant: erster Treffer gewinnt.
+COVERING_THICKNESS_RULES = [
+    # Epoxidharzversiegelung: 0.5–1.0 mm -> Mittelwert 0.75 mm
+    (["epoxid", "epoxy"], 0.00075),
+    # PBD-Abdichtung (PMMA, PUR, Polyurethan, Methylmethacrylat): 2–4 mm -> 3 mm
+    (["pmma", "pur", "polyurethan", "polyurethane", "methylmethacrylat", "pbd", "pbma"], 0.003),
+    # Flüssigkunststoff-Abdichtung (FLK): 2–4 mm -> 3 mm
+    (["flk", "fl\u00fcssigkunststoff", "fl\u00fcssig", "fluessigkunststoff", "fluessig"], 0.003),
+]
+COVERING_THICKNESS_DEFAULT = 0.003  # 3 mm Fallback
 
 
 def _to_float(value):
@@ -168,10 +63,31 @@ def _first_numeric(entry, keys):
     return None
 
 
+def _get_covering_thickness(entry):
+    """Bestimmt die Schichtdicke (in Meter) für ein IfcCovering-Element anhand von
+    Keyword-Matching auf Description, Name und Material."""
+    search_fields = [
+        entry.get("Description") or "",
+        entry.get("Name") or "",
+    ]
+    mat = entry.get("Material") or ""
+    if isinstance(mat, list):
+        search_fields += [str(m) for m in mat]
+    else:
+        search_fields.append(str(mat))
+
+    combined = " ".join(search_fields).lower()
+
+    for keywords, thickness in COVERING_THICKNESS_RULES:
+        if any(kw in combined for kw in keywords):
+            return thickness
+    return COVERING_THICKNESS_DEFAULT
+
+
 def _create_result_table(cursor, columns):
     col_defs = ", ".join(
         [
-            f"[{col}] REAL" if col not in ["GUID", "MaterialLayerIndex", "Material (KBOB)", "Bezugsgröße", "Fehlende Berechnungsgrundlage"] else f"[{col}] TEXT"
+            f"[{col}] REAL" if col not in ["GUID", "MaterialLayerIndex", "Material (KBOB)", "Bezugsgrösse", "Fehlende Berechnungsgrundlage"] else f"[{col}] TEXT"
             for col in columns
         ]
     )
@@ -209,11 +125,19 @@ def _ensure_result_table_schema(cursor, columns):
 
 def _determine_reference_value(entry, material, material_vals):
     ifc_entity = str(entry.get("IfcEntity") or "").strip().lower()
+    bezug = str(material_vals.get(COLUMN_BEZUG) or "").strip().lower()
     net_volume = entry.get("NetVolume")
     gross_volume = entry.get("GrossVolume")
     preferred_volume = net_volume if _to_float(net_volume) is not None else gross_volume
     length = entry.get("Length")
     ansichtsfläche = entry.get("Ansichtsfläche")
+
+    # IfcCovering: synthetisches Volumen aus NetArea × Schichtdicke
+    if ifc_entity == "ifccovering" and _to_float(preferred_volume) is None:
+        net_area = _to_float(entry.get("NetArea"))
+        if net_area is not None:
+            thickness = _get_covering_thickness(entry)
+            preferred_volume = net_area * thickness
 
     if ifc_entity == "ifcreinforcingbar":
         weight = _first_numeric(entry, ["Weight", "Weight [kg]"])
@@ -221,20 +145,20 @@ def _determine_reference_value(entry, material, material_vals):
         if weight is not None and count is not None:
             return "Masse (kg)", weight * count, None
         if weight is None:
-            return "Masse (kg)", None, "Weight fehlt fuer IfcReinforcingBar"
-        return "Masse (kg)", None, "Count fehlt fuer IfcReinforcingBar"
+            return "Masse (kg)", None, "Masse fehlt für IfcReinforcingBar"
+        return "Masse (kg)", None, "Anzahl fehlt für IfcReinforcingBar"
 
-    if material in LENGTH_MATERIALS:
+    if bezug == "m":
         value = _to_float(length)
-        reason = None if value is not None else "Length fehlt"
+        reason = None if value is not None else "Länge fehlt"
         return "Length", value, reason
 
-    if material in AREA_MATERIALS:
+    if bezug == "m2":
         value = _to_float(ansichtsfläche)
         reason = None if value is not None else "Ansichtsfläche fehlt"
         return "Ansichtsfläche", value, reason
 
-    if material in KG_MATERIALS:
+    if bezug == "kg":
         for field in KG_DIRECT_FIELDS:
             direct_mass = _to_float(entry.get(field))
             if direct_mass is not None:
@@ -245,11 +169,12 @@ def _determine_reference_value(entry, material, material_vals):
         if density_num is not None and net_volume_num is not None:
             return "Masse (kg)", net_volume_num * density_num, None
         if net_volume_num is None:
-            return "Masse (kg)", None, "NetVolume/GrossVolume fehlt fuer Umrechnung m3->kg"
+            return "Masse (kg)", None, "Volumen fehlt für Umrechnung m3->kg"
         return "Masse (kg)", None, "Rohdichte fehlt in DB"
 
+    # Default: m3 (Volumen)
     value = _to_float(preferred_volume)
-    reason = None if value is not None else "NetVolume/GrossVolume fehlt"
+    reason = None if value is not None else "Volumen fehlt"
     return "NetVolume", value, reason
 
 
@@ -264,23 +189,29 @@ def load_ifc_jsonl_entries(jsonl_path):
 
 def fetch_material_values_map(connection):
     cursor = connection.cursor()
-    # Füge eckige Klammern um Spaltennamen mit Sonderzeichen
+
+    # Spaltennamen dynamisch aus der DB lesen
+    cursor.execute(f"PRAGMA table_info({TABLE_NAME})")
+    all_columns = [row[1] for row in cursor.fetchall()]
+    columns_to_calc = [col for col in all_columns if col not in METADATA_COLUMNS]
+
     def safe_col(col):
-        if any(c in col for c in " ()-[]"):  # SQLite: Klammern, Bindestrich, Leerzeichen
+        if any(c in col for c in " ()-[]"):
             return f'[{col}]'
         return col
-    columns = ", ".join(
+
+    select_cols = ", ".join(
         [safe_col(COLUMN_MATERIAL)]
-        + [safe_col(col) for col in COLUMNS_TO_CALC]
-        + [safe_col(COLUMN_DENSITY)]
+        + [safe_col(col) for col in columns_to_calc]
+        + [safe_col(COLUMN_DENSITY), safe_col(COLUMN_BEZUG)]
     )
-    cursor.execute(f"SELECT {columns} FROM {TABLE_NAME}")
+    cursor.execute(f"SELECT {select_cols} FROM {TABLE_NAME}")
     result = {}
     for row in cursor.fetchall():
         material = row[0]
-        values = dict(zip(COLUMNS_TO_CALC + [COLUMN_DENSITY], row[1:]))
+        values = dict(zip(columns_to_calc + [COLUMN_DENSITY, COLUMN_BEZUG], row[1:]))
         result[material] = values
-    return result
+    return result, columns_to_calc
 
 
 def load_material_mapping(jsonl_path):
@@ -320,7 +251,7 @@ def _resolve_export_db_path(jsonl_path, export_dir):
 def calculate_ubp_for_jsonl(jsonl_path, export_dir=None, database_path=DATABASE_PATH):
     entries = load_ifc_jsonl_entries(jsonl_path)
     with sqlite3.connect(database_path) as connection:
-        material_values = fetch_material_values_map(connection)
+        material_values, columns_to_calc = fetch_material_values_map(connection)
 
     results = []
     export_db_path = _resolve_export_db_path(jsonl_path, export_dir)
@@ -334,6 +265,7 @@ def calculate_ubp_for_jsonl(jsonl_path, export_dir=None, database_path=DATABASE_
         preferred_volume = net_volume if _to_float(net_volume) is not None else gross_volume
         length = entry.get("Length")
         ansichtsfläche = entry.get("Ansichtsfläche")
+        net_area = entry.get("NetArea")
         count = entry.get("Count")
         weight = entry.get("Weight") if "Weight" in entry else entry.get("Weight [kg]")
         value_label, value_num, missing_reason = _determine_reference_value(entry, material, material_vals)
@@ -345,6 +277,7 @@ def calculate_ubp_for_jsonl(jsonl_path, export_dir=None, database_path=DATABASE_
             "IfcEntity": entry.get("IfcEntity"),
             "Length": length,
             "Ansichtsfläche": ansichtsfläche,
+            "NetArea": net_area,
             "NetVolume": preferred_volume,
             "GrossVolume": gross_volume,
             "Count": count,
@@ -354,7 +287,7 @@ def calculate_ubp_for_jsonl(jsonl_path, export_dir=None, database_path=DATABASE_
             "Berechnungswert": value_num,
             "Fehlende Berechnungsgrundlage": missing_reason,
         }
-        for col in COLUMNS_TO_CALC:
+        for col in columns_to_calc:
             db_val = material_vals.get(col)
             db_val_num = _to_float(db_val)
             if value_num is not None and db_val_num is not None:
