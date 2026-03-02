@@ -9,6 +9,7 @@ import streamlit as st
 import streamlit.components.v1 as components
 
 from Dashboard.domain.mapping import add_domain_defaults, build_ai_mapping_groups
+from Dashboard.services.kbob_materials import load_all_kbob_materials
 from Dashboard.services.ubp import run_ubp_calculation
 from Dashboard.services.viewer import ensure_static_server, render_viewer_bridge, set_active_guid
 
@@ -273,6 +274,12 @@ def render_tab_ai_mapping(df: pd.DataFrame | None) -> None:
 
         grouped_base = build_ai_mapping_groups(base)
 
+        all_kbob_materials, kbob_db_path, kbob_load_error = load_all_kbob_materials()
+        if kbob_db_path:
+            st.session_state["kbob_db_path"] = kbob_db_path
+        if kbob_load_error:
+            st.warning(f"KBOB-Vollauswahl nicht verfügbar ({kbob_load_error}). Es werden nur Top-Treffer angezeigt.")
+
         updates = []
         for group_index, group in enumerate(grouped_base):
             row_data = group["row"]
@@ -319,15 +326,32 @@ def render_tab_ai_mapping(df: pd.DataFrame | None) -> None:
             )
 
             matches = group["matches"]
-            material_options = [
-                f"{m.get('material')} (Score: {m.get('score'):.3f})" if m.get("score") is not None else m.get("material")
-                for m in matches
-            ]
-            material_lookup = {
-                f"{m.get('material')} (Score: {m.get('score'):.3f})" if m.get("score") is not None else m.get("material"): m.get("material")
-                for m in matches
-            }
-            options = [NO_SELECTION_LABEL] + material_options
+            scored_labels = []
+            material_lookup = {}
+            scored_materials = []
+            for match in matches:
+                material_name = match.get("material")
+                if not material_name:
+                    continue
+                material_name = str(material_name).strip()
+                if not material_name or material_name in scored_materials:
+                    continue
+                score_value = match.get("score")
+                label = f"{material_name} (Score: {score_value:.3f})" if score_value is not None else material_name
+                scored_labels.append(label)
+                material_lookup[label] = material_name
+                scored_materials.append(material_name)
+
+            scored_material_set = set(scored_materials)
+            remaining_material_labels = []
+            if all_kbob_materials:
+                for material_name in all_kbob_materials:
+                    if material_name in scored_material_set:
+                        continue
+                    remaining_material_labels.append(material_name)
+                    material_lookup[material_name] = material_name
+
+            options = [NO_SELECTION_LABEL] + scored_labels + remaining_material_labels
             scores = _get_score_lookup(matches)
             stored_materials = []
             for guid in guids:

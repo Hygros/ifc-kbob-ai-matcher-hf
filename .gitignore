@@ -76,3 +76,6 @@ IFC-Modelle/AFRY/
 
 # SBERT-Models
 models/
+
+Evaluation/azure
+Evaluation/exports/azure_logs

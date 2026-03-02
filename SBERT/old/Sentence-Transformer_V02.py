@@ -8,7 +8,7 @@ from sentence_transformers import SentenceTransformer
 DB_PATH = r"C:\Users\wpx619\AAA_Python_MTH\Ökobilanzdaten.sqlite3"
 MATERIALS_TABLE = "Oekobilanzdaten"
 MATERIAL_COL = "Material"
-MODEL_NAME = "all-mpnet-base-v2"  # change model here only
+MODEL_NAME = "sentence-transformers/all-mpnet-base-v2"  # change model here only
 MODEL_DIR = f"./models/{MODEL_NAME}"
 TOP_K = 5
 

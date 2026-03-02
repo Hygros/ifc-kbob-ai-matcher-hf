@@ -7,6 +7,7 @@ CHART_HEIGHT = 700
 SBERT_MODEL_OPTIONS = [
     "google/embeddinggemma-300m",
     "BAAI/bge-m3",
+    "BAAI/bge-m3.finetuned.1e",
     "intfloat/multilingual-e5-large",
     "intfloat/multilingual-e5-base",
     "sentence-transformers/LaBSE",

@@ -27,7 +27,8 @@ COLUMN_MATERIAL = "Material"
 MODEL_NAME = "BAAI/bge-m3"  # Change model name here
 
 _BASE_DIR = Path(__file__).resolve().parent
-SBERT_MODELS_DIR = _BASE_DIR / "models"
+_PROJECT_ROOT = _BASE_DIR.parent
+SBERT_MODELS_DIR = _PROJECT_ROOT / "models"
 
 TOP_K_RESULTS = 30
 SIMILARITY_FUNCTION = SimilarityFunction.COSINE  # Alternatives: DOT_PRODUCT, EUCLIDEAN, MANHATTAN
@@ -84,7 +85,7 @@ def _resolve_model_name(model_name: str | None = None) -> str:
 
 
 def _model_directory_for(model_name: str) -> str:
-    return str(_BASE_DIR / "models" / model_name)
+    return str(SBERT_MODELS_DIR / model_name)
 
 
 def load_or_save_model(model_name: str | None = None, device: str = "cpu") -> SentenceTransformer:
@@ -163,7 +164,7 @@ def _normalize_cross_encoder_scores(raw_scores: np.ndarray) -> list[float]:
 def load_or_get_cross_encoder(model_name: str, device: str) -> CrossEncoder:
     """
     Lädt ein CrossEncoder-Modell und cacht es im globalen Dict.
-    Speichert das Modell lokal unter SBERT/models/cross-encoder/<model_name>/
+    Speichert das Modell lokal unter models/cross-encoder/<model_name>/
     trust_remote_code=True ist generisch gesetzt (zwingend für Jina, ignoriert von BAAI/mmarco).
     """
     key = (model_name, device)

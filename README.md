@@ -14,7 +14,7 @@ Dieses Projekt bietet eine Pipeline zur Extraktion, Analyse und Bewertung von Ba
 - `IFC_Extraction/`: Scripte zur IFC-Extraktion.
 - `SBERT/`: SBERT-Matching und Modellverwaltung.
 - `Dashboard/`: Streamlit-App mit Viewer und Analyse.
-- `models/`: Vorgehaltene SBERT-Modelle.
+- `models/`: Kanonischer lokaler Modellordner (repo-weit) für SBERT- und Cross-Encoder-Modelle.
 - `ifc-export/`, `IFC-Modelle/`: Beispiel- und Ergebnisdaten.
 - `Synonyme/`: Synonymdatenbanken und -tools.
 
@@ -32,7 +32,7 @@ Dieses Projekt bietet eine Pipeline zur Extraktion, Analyse und Bewertung von Ba
 - Python 3.8+
 - Pakete: `ifcopenshell`, `sentence-transformers`, `streamlit`, `torch`, `sqlite3`, u.a.
 - KBOB-Datenbank: `Ökobilanzdaten.sqlite3` im Projektverzeichnis
-- Optional: Lokale SBERT-Modelle im `models/`-Ordner
+- Optional: Lokale Modelle im kanonischen `models/`-Ordner im Projekt-Root
 
 ## Nutzung
 

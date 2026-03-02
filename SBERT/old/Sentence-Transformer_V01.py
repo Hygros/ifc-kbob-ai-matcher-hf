@@ -13,7 +13,7 @@ from sklearn.metrics import confusion_matrix, precision_score, recall_score, f1_
 DB_PATH = r"C:\\Users\\wpx619\\AAA_Python_MTH\\Ökobilanzdaten.sqlite3"
 MATERIALS_TABLE = "Oekobilanzdaten"
 MATERIAL_COL = "Material"
-MODEL_NAME = "paraphrase-multilingual-MiniLM-L12-v2"
+MODEL_NAME = "sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2"
 MODEL_DIR = f"./models/{MODEL_NAME}"
 TOP_K = 1
 
