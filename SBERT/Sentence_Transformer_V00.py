@@ -21,7 +21,7 @@ except ImportError:
 
 
 # --- Configuration ---
-DATABASE_PATH = r"C:\Users\wpx619\AAA_Python_MTH\Ökobilanzdaten.sqlite3"
+DATABASE_PATH = r"C:\Users\wpx619\.AAA_Python_MTH\Ökobilanzdaten.sqlite3"
 TABLE_NAME = "Oekobilanzdaten"
 COLUMN_MATERIAL = "Material"
 MODEL_NAME = "BAAI/bge-m3"  # Change model name here
@@ -107,12 +107,15 @@ IFC_EXPORT_FIELDS = [
     "Description",
     "Durchmesser",
     "CastingMethod",
+    "ExposureClass",
+    "StrengthClass",
+    "StructuralClass",
 ]
 
-# "ExposureClass",
-# "ReinforcementStrengthClass"
-# "StrengthClass",
-# "StructuralClass",
+# "ReinforcementStrengthClass",
+# 
+# 
+# 
 # "comment", (nur für Tekla 2025)
 
 

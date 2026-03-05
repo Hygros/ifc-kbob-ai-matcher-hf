@@ -4,6 +4,32 @@ import pandas as pd
 CHART_HEIGHT = 700
 
 
+# ---------------------------------------------------------------------------
+# Bewehrungserkennung (Reinforcement detection)
+# ---------------------------------------------------------------------------
+# Case-insensitive Substrings – deckt z.B. Stahlbeton, Ortbeton, Spritzbeton,
+# Fertigbeton, Reinforced Concrete, Precast Concrete, etc.
+CONCRETE_KEYWORDS: list[str] = ["beton", "concrete"]
+
+# Standard-Bewehrungsgehalt (kg Stahl / m³ Beton) je IfcEntity.
+# "_default" wird verwendet, wenn der IfcEntity-Typ nicht gelistet ist.
+DEFAULT_REINFORCEMENT_RATIO: dict[str, float] = {
+    "IfcSlab": 80.0,
+    "IfcWall": 60.0,
+    "IfcColumn": 150.0,
+    "IfcBeam": 120.0,
+    "IfcPile": 100.0,
+    "IfcFooting": 80.0,
+    "_default": 100.0,
+}
+
+# KBOB-Materialname für synthetische Bewehrungszeilen
+REINFORCEMENT_KBOB_MATERIAL: str = "Armierungsstahl"
+
+# Fallback-Dichte (kg/m³) für Armierungsstahl, falls DB-Abfrage fehlschlägt
+REINFORCEMENT_STEEL_DENSITY_FALLBACK: float = 7850.0
+
+
 SBERT_MODEL_OPTIONS = [
     "google/embeddinggemma-300m",
     "BAAI/bge-m3",

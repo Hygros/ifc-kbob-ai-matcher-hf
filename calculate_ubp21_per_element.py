@@ -6,7 +6,7 @@ import tkinter as tk
 from tkinter import filedialog
 
 # --- Konfiguration ---
-DATABASE_PATH = r"C:\Users\wpx619\AAA_Python_MTH\Ökobilanzdaten.sqlite3"
+DATABASE_PATH = r"C:\Users\wpx619\.AAA_Python_MTH\Ökobilanzdaten.sqlite3"
 TABLE_NAME = "Oekobilanzdaten"
 
 COLUMN_UUID = "UUID"
@@ -295,6 +295,49 @@ def calculate_ubp_for_jsonl(jsonl_path, export_dir=None, database_path=DATABASE_
             else:
                 export_row[col] = None
         results.append(export_row)
+
+    # --- Synthetische Bewehrungszeilen (reinforcement assumptions) ---
+    rebar_material_name = "Armierungsstahl"
+    rebar_material_vals = material_values.get(rebar_material_name, {})
+    for entry in entries:
+        if not entry.get("reinforcement_accepted"):
+            continue
+        ratio = _to_float(entry.get("reinforcement_ratio_kg_m3"))
+        if ratio is None or ratio <= 0:
+            continue
+        net_volume = _to_float(entry.get("NetVolume"))
+        gross_volume = _to_float(entry.get("GrossVolume"))
+        volume = net_volume if net_volume is not None else (gross_volume if gross_volume is not None else None)
+        if volume is None or volume <= 0:
+            continue
+        rebar_mass = volume * ratio
+        guid = entry.get("GUID")
+
+        rebar_row = {
+            "GUID": guid,
+            "MaterialLayerIndex": "R",
+            "Material (KBOB)": rebar_material_name,
+            "IfcEntity": entry.get("IfcEntity"),
+            "Length": None,
+            "Ansichtsfläche": None,
+            "NetArea": None,
+            "NetVolume": volume,
+            "GrossVolume": entry.get("GrossVolume"),
+            "Count": None,
+            "Weight": None,
+            "Masse (kg)": rebar_mass,
+            "Bezugsgröße": "Masse (kg)",
+            "Berechnungswert": rebar_mass,
+            "Fehlende Berechnungsgrundlage": None,
+        }
+        for col in columns_to_calc:
+            db_val = rebar_material_vals.get(col)
+            db_val_num = _to_float(db_val)
+            if db_val_num is not None:
+                rebar_row[col] = round(rebar_mass * db_val_num, 0)
+            else:
+                rebar_row[col] = None
+        results.append(rebar_row)
 
     conn = sqlite3.connect(export_db_path)
     cursor = conn.cursor()

@@ -1,166 +1,255 @@
 import os
-import ifcopenshell
-import ifcopenshell.util.element
-from ifc_material_extract_util import extract_materials
 import csv
 import sys
+import json
+import argparse
+from collections import Counter
+from ifc_extraction_core import DEFAULT_PROPERTY_FIELDS, extract_export_dicts_from_ifc_file
 
-# --- Einheiten-Handling ---
-def get_ifc_units(model):
-    prefix_factors = {
-        "MILLI": 0.001,
-        "CENTI": 0.01,
-        "DECI": 0.1,
-        "NONE": 1.0,
-        None: 1.0
-    }
-    units = {"LENGTHUNIT": ("METRE", 1.0), "VOLUMEUNIT": ("CUBIC_METRE", 1.0), "AREAUNIT": ("SQUARE_METRE", 1.0)}
-    for assignment in model.by_type("IfcUnitAssignment"):
-        for unit in assignment.Units:
-            if hasattr(unit, 'UnitType') and unit.UnitType in ("LENGTHUNIT", "VOLUMEUNIT", "AREAUNIT"):
-                name = getattr(unit, 'Name', None)
-                prefix = getattr(unit, 'Prefix', None)
-                name_str = str(name) if name is not None else ""
-                factor = prefix_factors.get(prefix, 1.0)
-                units[unit.UnitType] = (name_str, factor)
-    return units
+def _stringify_for_csv(value):
+    if isinstance(value, list):
+        return json.dumps(value, ensure_ascii=False)
+    if isinstance(value, dict):
+        return json.dumps(value, ensure_ascii=False)
+    if value is None:
+        return ""
+    return str(value)
 
-def extract_fields_from_psets(pset_dict, wanted_fields, default=None):
-    extracted = {}
-    for field in wanted_fields:
-        value = default
-        for _, sub_dict in pset_dict.items():
-            if isinstance(sub_dict, dict) and field in sub_dict:
-                value = sub_dict[field]
-                break
-        extracted[field] = value
-    return extracted
 
-def clean_value(val, field=None):
-    if isinstance(val, list):
-        val = ", ".join(str(v) for v in val if v)
-    if val is None or str(val).strip() == "" or str(val).strip() == "NOTDEFINED":
-        return None
-    return str(val).strip()
+def _extract_material_values(raw_value):
+    if isinstance(raw_value, list):
+        if not raw_value:
+            return [""]
+        return ["" if value is None else str(value) for value in raw_value]
+    if raw_value is None:
+        return [""]
+    return [str(raw_value)]
 
-def clean_and_convert_value(val, field, units):
-    if val is None or str(val).strip() == "" or str(val).strip() == "NOTDEFINED":
-        return None
-    try:
-        fval = float(val)
-    except Exception:
-        return str(val).strip()
-    if field == "Length":
-        length_unit, length_factor = units.get("LENGTHUNIT", ("METRE", 1.0))
-        return round(fval * length_factor, 6)
-    if field == "NetVolume":
-        volume_unit, volume_factor = units.get("VOLUMEUNIT", ("CUBIC_METRE", 1.0))
-        return round(fval * volume_factor, 9)
-    if field == "GrossVolume":
-        volume_unit, volume_factor = units.get("VOLUMEUNIT", ("CUBIC_METRE", 1.0))
-        return round(fval * volume_factor, 9)
-    if field == "AREA_PROJECTION_XY_NET":
-        area_unit, area_factor = units.get("AREAUNIT", ("SQUARE_METRE", 1.0))
-        return round(fval * area_factor, 6)
-    if field == "Durchmesser":
-        length_unit, length_factor = units.get("LENGTHUNIT", ("METRE", 1.0))
-        return str(int(round(fval * length_factor * 1000)))
-    return str(val).strip()
 
-def process_ifc_file(ifc_file_path, property_fields, export_fields_for_csv):
-    model = ifcopenshell.open(ifc_file_path)
-    units = get_ifc_units(model)
-    elements = [element for element in model.by_type("IfcElement") if element.is_a() not in ["IfcOpeningElement", "IfcElementAssembly"]]
-    export_dicts = []
-    for element in elements:
-        property_sets = ifcopenshell.util.element.get_psets(element)
-        ifc_entity = element.is_a() if hasattr(element, 'is_a') else None
-        name = getattr(element, 'Name', None)
-        predefined_type = getattr(element, 'PredefinedType', None)
-        guid = element.GlobalId if hasattr(element, 'GlobalId') else None
-        extracted_properties = extract_fields_from_psets(property_sets, property_fields)
-        for key in ["Length", "NetVolume", "GrossVolume", "Durchmesser"]:
-            if key in extracted_properties and extracted_properties[key] is not None:
-                extracted_properties[key] = clean_and_convert_value(extracted_properties[key], key, units)
-        if extracted_properties.get("NetVolume") is None and extracted_properties.get("GrossVolume") is not None:
-            extracted_properties["NetVolume"] = extracted_properties["GrossVolume"]
-        filtered_properties = {key: value for key, value in extracted_properties.items() if value not in (None, "", [], {})}
-        materials = extract_materials(model, element)
-        material_names = [m["Name"] for m in materials if "Name" in m]
-        material_layer_thicknesses = list(dict.fromkeys(m["LayerThickness"] for m in materials if "LayerThickness" in m))
-        element_dict = {
-            "IfcEntity": ifc_entity,
-            "PredefinedType": predefined_type,
-            "Name": name,
-            "Material": material_names,
-            "MaterialLayerThickness": material_layer_thicknesses,
-            "GUID": guid,
-            **filtered_properties
-        }
-        element_dict = {k: v for k, v in element_dict.items() if v not in (None, "", [], {})}
-        export_dicts.append(element_dict)
-    return export_dicts
+def _normalize_label(value):
+    if value is None:
+        return "UNDEFINED"
+    label = str(value).strip()
+    if label == "":
+        return "UNDEFINED"
+    if label.upper() in {"NOTDEFINED", "UNDEFINED", "NONE", "NULL", "N/A"}:
+        return "UNDEFINED"
+    return label
 
-def main():
-    ifc_folder = r"C:\Users\wpx619\OneDrive - AFRY\BIM-VDC\Ifc_Files_Test"
-    output_csv = os.path.join(ifc_folder, "ifc_elements_export.csv")
-    property_fields = [
-        "comment",
+
+def _build_guid_based_keys(rows):
+    row_keys = []
+    fallback_counter = 0
+    for row in rows:
+        guid = row.get("GUID")
+        if guid in (None, ""):
+            fallback_counter += 1
+            row_keys.append(f"__NO_GUID__::{row.get('SourceFile', '')}::{fallback_counter}")
+        else:
+            row_keys.append(str(guid))
+    return row_keys
+
+
+def _write_analysis_reports(all_rows, output_directory, analysis_prefix):
+    if not all_rows:
+        return
+
+    row_keys = _build_guid_based_keys(all_rows)
+    unique_guid_map = {}
+    for row, row_key in zip(all_rows, row_keys):
+        if row_key not in unique_guid_map:
+            unique_guid_map[row_key] = row
+
+    entity_counter = Counter()
+    predefined_counter = Counter()
+    for row in unique_guid_map.values():
+        entity_counter[_normalize_label(row.get("IfcEntity"))] += 1
+        predefined_counter[_normalize_label(row.get("PredefinedType"))] += 1
+
+    material_counter = Counter()
+    for row in all_rows:
+        for material in _extract_material_values(row.get("Material")):
+            material_counter[_normalize_label(material)] += 1
+
+    guid_rows = list(unique_guid_map.items())
+    entity_to_guid_keys = {}
+    entity_predefined_to_guid_keys = {}
+    entity_material_to_guid_keys = {}
+    entity_predefined_material_to_guid_keys = {}
+
+    for guid_key, row in guid_rows:
+        entity = _normalize_label(row.get("IfcEntity"))
+        predefined_type = _normalize_label(row.get("PredefinedType"))
+        if entity not in entity_to_guid_keys:
+            entity_to_guid_keys[entity] = set()
+        entity_to_guid_keys[entity].add(guid_key)
+
+        entity_predefined_key = (entity, predefined_type)
+        if entity_predefined_key not in entity_predefined_to_guid_keys:
+            entity_predefined_to_guid_keys[entity_predefined_key] = set()
+        entity_predefined_to_guid_keys[entity_predefined_key].add(guid_key)
+
+    for row, guid_key in zip(all_rows, row_keys):
+        entity = _normalize_label(row.get("IfcEntity"))
+        predefined_type = _normalize_label(row.get("PredefinedType"))
+        for material in _extract_material_values(row.get("Material")):
+            material_label = _normalize_label(material)
+            entity_material_key = (entity, material_label)
+            if entity_material_key not in entity_material_to_guid_keys:
+                entity_material_to_guid_keys[entity_material_key] = set()
+            entity_material_to_guid_keys[entity_material_key].add(guid_key)
+
+            entity_predefined_material_key = (entity, predefined_type, material_label)
+            if entity_predefined_material_key not in entity_predefined_material_to_guid_keys:
+                entity_predefined_material_to_guid_keys[entity_predefined_material_key] = set()
+            entity_predefined_material_to_guid_keys[entity_predefined_material_key].add(guid_key)
+
+    summary_csv = os.path.join(output_directory, f"{analysis_prefix}_summary.csv")
+    with open(summary_csv, "w", encoding="utf-8", newline="") as csvfile:
+        writer = csv.DictWriter(csvfile, fieldnames=["Metric", "Value"])
+        writer.writeheader()
+        writer.writerow({"Metric": "ExportRowsTotal", "Value": len(all_rows)})
+        writer.writerow({"Metric": "UniqueElementsGuidBased", "Value": len(unique_guid_map)})
+        writer.writerow({"Metric": "DistinctIfcEntity", "Value": len(entity_counter)})
+        writer.writerow({"Metric": "DistinctPredefinedType", "Value": len(predefined_counter)})
+        writer.writerow({"Metric": "DistinctMaterial", "Value": len(material_counter)})
+
+    entity_csv = os.path.join(output_directory, f"{analysis_prefix}_ifcentity_counts.csv")
+    with open(entity_csv, "w", encoding="utf-8", newline="") as csvfile:
+        writer = csv.DictWriter(csvfile, fieldnames=["IfcEntity", "CountGuidBased"])
+        writer.writeheader()
+        for ifc_entity, count in sorted(entity_counter.items(), key=lambda item: (-item[1], item[0])):
+            writer.writerow({"IfcEntity": ifc_entity, "CountGuidBased": count})
+
+    predefined_csv = os.path.join(output_directory, f"{analysis_prefix}_predefinedtype_counts.csv")
+    with open(predefined_csv, "w", encoding="utf-8", newline="") as csvfile:
+        writer = csv.DictWriter(csvfile, fieldnames=["PredefinedType", "CountGuidBased"])
+        writer.writeheader()
+        for predefined_type, count in sorted(predefined_counter.items(), key=lambda item: (-item[1], item[0])):
+            writer.writerow({"PredefinedType": predefined_type, "CountGuidBased": count})
+
+    materials_csv = os.path.join(output_directory, f"{analysis_prefix}_materials.csv")
+    with open(materials_csv, "w", encoding="utf-8", newline="") as csvfile:
+        writer = csv.DictWriter(csvfile, fieldnames=["Material", "CountRows"])
+        writer.writeheader()
+        for material, count in sorted(material_counter.items(), key=lambda item: (-item[1], item[0])):
+            writer.writerow({"Material": material, "CountRows": count})
+
+    entity_tree_csv = os.path.join(output_directory, f"{analysis_prefix}_entity_tree.csv")
+    with open(entity_tree_csv, "w", encoding="utf-8", newline="") as csvfile:
+        writer = csv.DictWriter(
+            csvfile,
+            fieldnames=[
+                "IfcEntity",
+                "IfcEntityCountGuidBased",
+                "PredefinedType",
+                "Material",
+                "CountGuidBased",
+            ],
+        )
+        writer.writeheader()
+        combo_rows = []
+        for (ifc_entity, predefined_type, material), guid_set in entity_predefined_material_to_guid_keys.items():
+            combo_rows.append(
+                {
+                    "IfcEntity": ifc_entity,
+                    "IfcEntityCountGuidBased": len(entity_to_guid_keys.get(ifc_entity, set())),
+                    "PredefinedType": predefined_type,
+                    "Material": material,
+                    "CountGuidBased": len(guid_set),
+                }
+            )
+        combo_rows.sort(
+            key=lambda row: (
+                -int(row["IfcEntityCountGuidBased"]),
+                row["IfcEntity"],
+                -int(row["CountGuidBased"]),
+                row["PredefinedType"],
+                row["Material"],
+            )
+        )
+        for combo_row in combo_rows:
+            writer.writerow(combo_row)
+
+    print(f"Analyse abgeschlossen: {summary_csv}")
+    print(f"Analyse abgeschlossen: {entity_csv}")
+    print(f"Analyse abgeschlossen: {predefined_csv}")
+    print(f"Analyse abgeschlossen: {materials_csv}")
+    print(f"Analyse abgeschlossen: {entity_tree_csv}")
+
+
+def _collect_export_fields(all_elements):
+    default_order = [
+        "IfcEntity",
+        "PredefinedType",
+        "Name",
         "Description",
+        "Material",
+        "MaterialLayerThickness",
+        "MaterialLayerIndex",
+        "GUID",
         "Status",
-        "Durchmesser",
         "CastingMethod",
         "StructuralClass",
         "StrengthClass",
         "ExposureClass",
-        "ReinforcementStrengthClass",
         "Length",
         "NetVolume",
         "GrossVolume",
         "Ansichtsfläche",
         "ReinforcementVolumeRatio",
-    ]
-    export_fields_for_csv = [
-        "IfcEntity",
-        "PredefinedType",
-        "Name",
-        "Material",
-        "MaterialLayerThickness",
-        "GUID",
-        "comment",
-        "Description",
-        "Status",
+        "Count",
+        "Weight",
         "Durchmesser",
-        "CastingMethod",
-        "StructuralClass",
-        "StrengthClass",
-        "ExposureClass",
-        "ReinforcementStrengthClass",
-        "Length",
-        "NetVolume",
-        "GrossVolume",
-        "Ansichtsfläche",
-        "ReinforcementVolumeRatio"
     ]
+
+    discovered = set()
+    for element in all_elements:
+        discovered.update(element.keys())
+
+    ordered = [field for field in default_order if field in discovered]
+    ordered.extend(sorted(discovered - set(default_order)))
+    return ordered
+
+def main():
+    parser = argparse.ArgumentParser(description="Batch IFC-Export mit gleicher Logik wie IFC-extraction-main.py")
+    parser.add_argument("--ifc-folder", default=os.getcwd(), help="Ordner mit IFC-Dateien")
+    parser.add_argument("--output-csv", default=None, help="Pfad zur aggregierten CSV-Ausgabe")
+    parser.add_argument("--analysis-prefix", default="ifc_elements_analysis", help="Dateipräfix für Analyse-CSVs")
+    args = parser.parse_args()
+
+    ifc_folder = args.ifc_folder
+    if not os.path.isdir(ifc_folder):
+        print(f"Ordner nicht gefunden: {ifc_folder}")
+        sys.exit(1)
+
+    output_csv = args.output_csv or os.path.join(ifc_folder, "ifc_elements_export.csv")
+    property_fields = list(DEFAULT_PROPERTY_FIELDS)
+
     all_elements = []
     for filename in os.listdir(ifc_folder):
         if filename.lower().endswith(".ifc"):
             ifc_path = os.path.join(ifc_folder, filename)
             print(f"Verarbeite: {ifc_path}")
-            elements = process_ifc_file(ifc_path, property_fields, export_fields_for_csv)
+            elements = extract_export_dicts_from_ifc_file(ifc_path, property_fields)
             for el in elements:
                 el["SourceFile"] = filename
             all_elements.extend(elements)
+
     if not all_elements:
         print("Keine Elemente gefunden.")
         return
+
+    export_fields_for_csv = _collect_export_fields(all_elements)
     with open(output_csv, "w", encoding="utf-8", newline="") as csvfile:
         writer = csv.DictWriter(csvfile, fieldnames=["SourceFile"] + export_fields_for_csv)
         writer.writeheader()
         for el in all_elements:
-            row = {k: clean_value(el.get(k, ""), k) for k in ["SourceFile"] + export_fields_for_csv}
+            row = {k: _stringify_for_csv(el.get(k, "")) for k in ["SourceFile"] + export_fields_for_csv}
             writer.writerow(row)
+
     print(f"Export abgeschlossen: {output_csv}")
+    _write_analysis_reports(all_elements, os.path.dirname(output_csv), args.analysis_prefix)
 
 if __name__ == "__main__":
     main()

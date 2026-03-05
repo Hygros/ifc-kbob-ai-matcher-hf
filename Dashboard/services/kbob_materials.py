@@ -5,9 +5,12 @@ from pathlib import Path
 
 import streamlit as st
 
+from Dashboard.config import REINFORCEMENT_KBOB_MATERIAL, REINFORCEMENT_STEEL_DENSITY_FALLBACK
+
 
 TABLE_NAME = "Oekobilanzdaten"
 COLUMN_MATERIAL = "Material"
+COLUMN_DENSITY = "Rohdichte"
 
 DASHBOARD_DIR = Path(__file__).resolve().parents[1]
 APP_ROOT = DASHBOARD_DIR.parent
@@ -70,3 +73,44 @@ def load_all_kbob_materials() -> tuple[list[str], str | None, str | None]:
         return materials, str(db_path), None
     except Exception as exc:
         return [], str(db_path), f"KBOB-Datenbank konnte nicht gelesen werden: {exc}"
+
+
+# ---------------------------------------------------------------------------
+# Armierungsstahl-Rohdichte aus KBOB-DB
+# ---------------------------------------------------------------------------
+
+@st.cache_data(show_spinner=False)
+def _load_reinforcement_density_cached(db_path: str) -> float | None:
+    """Query the ``Rohdichte`` column for the reinforcement steel entry."""
+    with sqlite3.connect(db_path) as conn:
+        cursor = conn.cursor()
+        cursor.execute(
+            f"SELECT [{COLUMN_DENSITY}] FROM {TABLE_NAME} "
+            f"WHERE {COLUMN_MATERIAL} = ?",
+            (REINFORCEMENT_KBOB_MATERIAL,),
+        )
+        row = cursor.fetchone()
+        if row and row[0] is not None:
+            try:
+                return float(row[0])
+            except (TypeError, ValueError):
+                return None
+    return None
+
+
+def get_reinforcement_steel_density() -> float:
+    """Return the density (kg/m³) for *Armierungsstahl* from the KBOB DB.
+
+    Falls back to ``REINFORCEMENT_STEEL_DENSITY_FALLBACK`` (7 850 kg/m³)
+    when the database is unreachable or the value is missing.
+    """
+    db_path = resolve_kbob_db_path()
+    if db_path is None:
+        return REINFORCEMENT_STEEL_DENSITY_FALLBACK
+    try:
+        density = _load_reinforcement_density_cached(str(db_path))
+        if density is not None and density > 0:
+            return density
+    except Exception:
+        pass
+    return REINFORCEMENT_STEEL_DENSITY_FALLBACK

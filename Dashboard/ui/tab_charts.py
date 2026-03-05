@@ -1,8 +1,9 @@
+import numpy as np
 import pandas as pd
 import plotly.express as px
 import streamlit as st
 
-from Dashboard.config import CHART_HEIGHT, get_available_indicator_definitions
+from Dashboard.config import CHART_HEIGHT, REINFORCEMENT_KBOB_MATERIAL, get_available_indicator_definitions
 
 
 def _normalize_group_value(value):
@@ -230,8 +231,52 @@ def render_tab_charts(df: pd.DataFrame | None) -> None:
         else:
             st.info("Keine Einträge mit fehlender Berechnungsgrundlage gefunden.")
 
+    # --- Bewehrungsannahmen (Reinforcement assumptions) ---
+    if "reinforcement_accepted" in df.columns:
+        rebar_mask = pd.Series(
+            np.where(df["reinforcement_accepted"].isna(), False, df["reinforcement_accepted"]),
+            index=df.index,
+        ).astype(bool)
+        if rebar_mask.any():
+            st.markdown("### Bewehrungsannahmen")
+            st.caption(
+                "Diese Beton-Bauteile haben kein modelliertes Bewehrungseisen (IfcReinforcingBar). "
+                "Die Bewehrung wurde anhand des Bewehrungsgehalts (kg/m³) angenommen und als "
+                f"separate «{REINFORCEMENT_KBOB_MATERIAL}»-Zeile in die UBP-Berechnung einbezogen."
+            )
+            rebar_cols = []
+            if guid_col:
+                rebar_cols.append(guid_col)
+            name_col = _first_existing_column(df, ["Name", "element_name"])
+            if name_col:
+                rebar_cols.append(name_col)
+            entity_col = _first_existing_column(df, ["IfcEntity", "ifc_entity"])
+            if entity_col:
+                rebar_cols.append(entity_col)
+            for rc in ["reinforcement_ratio_kg_m3", "reinforcement_source", "reinforcement_mass_kg"]:
+                if rc in df.columns:
+                    rebar_cols.append(rc)
+            rebar_display = df.loc[rebar_mask, rebar_cols].copy()
+            rename = {
+                "reinforcement_ratio_kg_m3": "Bewehrungsgehalt (kg/m³)",
+                "reinforcement_source": "Quelle",
+                "reinforcement_mass_kg": "Masse Stahl (kg)",
+            }
+            if name_col:
+                rename[name_col] = "Bauteil"
+            if entity_col:
+                rename[entity_col] = "IfcEntity"
+            if guid_col:
+                rename[guid_col] = "GUID"
+            rebar_display = rebar_display.rename(columns=rename)
+            if "Masse Stahl (kg)" in rebar_display.columns:
+                rebar_display["Masse Stahl (kg)"] = rebar_display["Masse Stahl (kg)"].apply(
+                    lambda x: f"{x:.1f}" if pd.notna(x) else ""
+                )
+            st.dataframe(rebar_display, width="stretch", hide_index=True)
+
     col1, col2 = st.columns(2)
     with col1:
-        st.download_button("Export CSV", data=agg.to_csv(index=False), file_name="chart_data.csv", mime="text/csv")
+        st.download_button("Export Chart Data (csv)", data=agg.to_csv(index=False), file_name="chart_data.csv", mime="text/csv")
     with col2:
-        st.download_button("Export IFC Mapping", data=fdf.to_csv(index=False), file_name="materials_table.csv", mime="text/csv")
+        st.download_button("Export All Data (csv)", data=fdf.to_csv(index=False), file_name="materials_table.csv", mime="text/csv")
