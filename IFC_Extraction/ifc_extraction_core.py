@@ -15,7 +15,6 @@ DEFAULT_PROPERTY_FIELDS = [
     "Description",
     "Status",
     "CastingMethod",
-    "StructuralClass",
     "StrengthClass",
     "ExposureClass",
     "Length",
@@ -24,6 +23,7 @@ DEFAULT_PROPERTY_FIELDS = [
     "ReinforcementVolumeRatio",
 ]
 
+# "StructuralClass",
 
 def get_ifc_units(model):
     units = {}

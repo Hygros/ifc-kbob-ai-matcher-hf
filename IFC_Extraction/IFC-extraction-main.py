@@ -18,7 +18,7 @@ if __name__ == "__main__":
     if len(sys.argv) > 1:
         ifc_file_path = sys.argv[1]
     else:
-        print("Usage: python IFC-extraction-main.py <path-to-ifc-file>")
+        print("Usage: python IFC_Extraction/IFC-extraction-main.py <path-to-ifc-file>")
         sys.exit(1)
 
     # Definiere, welche Eigenschaften aus den PropertySets extrahiert werden sollen

@@ -104,18 +104,15 @@ IFC_EXPORT_FIELDS = [
     "PredefinedType",
     "Name",
     "Material",
-    "Description",
     "Durchmesser",
     "CastingMethod",
-    "ExposureClass",
     "StrengthClass",
-    "StructuralClass",
 ]
 
 # "ReinforcementStrengthClass",
-# 
-# 
-# 
+# "Description",
+# "StructuralClass",
+# "ExposureClass",
 # "comment", (nur für Tekla 2025)
 
 

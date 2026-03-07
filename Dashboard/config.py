@@ -14,13 +14,13 @@ CONCRETE_KEYWORDS: list[str] = ["beton", "concrete"]
 # Standard-Bewehrungsgehalt (kg Stahl / m³ Beton) je IfcEntity.
 # "_default" wird verwendet, wenn der IfcEntity-Typ nicht gelistet ist.
 DEFAULT_REINFORCEMENT_RATIO: dict[str, float] = {
-    "IfcSlab": 80.0,
-    "IfcWall": 60.0,
-    "IfcColumn": 150.0,
-    "IfcBeam": 120.0,
-    "IfcPile": 100.0,
-    "IfcFooting": 80.0,
-    "_default": 100.0,
+    "IfcSlab": 150,
+    "IfcWall": 120,
+    "IfcColumn": 150,
+    "IfcBeam": 120,
+    "IfcPile": 100,
+    "IfcFooting": 80,
+    "_default": 100,
 }
 
 # KBOB-Materialname für synthetische Bewehrungszeilen
@@ -34,6 +34,7 @@ SBERT_MODEL_OPTIONS = [
     "google/embeddinggemma-300m",
     "BAAI/bge-m3",
     "BAAI/bge-m3.finetuned.1e",
+    "BAAI/bge-m3.finetuned.epoch-04",
     "intfloat/multilingual-e5-large",
     "intfloat/multilingual-e5-base",
     "sentence-transformers/LaBSE",
@@ -42,7 +43,7 @@ SBERT_MODEL_OPTIONS = [
     "sentence-transformers/distiluse-base-multilingual-cased-v2",
 ]
 
-DEFAULT_SBERT_MODEL = "BAAI/bge-m3"
+DEFAULT_SBERT_MODEL = "BAAI/bge-m3.finetuned.epoch-04"
 
 # --- Cross-Encoder (Re-Ranking) ---
 DEFAULT_CROSS_ENCODER_MODEL = "jinaai/jina-reranker-v2-base-multilingual"

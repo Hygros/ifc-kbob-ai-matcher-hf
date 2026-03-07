@@ -360,7 +360,7 @@ def render_tab_ai_mapping(df: pd.DataFrame | None) -> None:
                 return str(value).strip()
 
             label_parts = []
-            for key in ["IfcEntity", "PredefinedType", "Name", "Description", "Material"]:
+            for key in ["IfcEntity", "PredefinedType", "Name", "Description", "Material", "CastingMethod", "StrengthClass"]:
                 val = row_data.get(key)
                 formatted_val = format_label_value(val)
                 if is_valid(formatted_val):
