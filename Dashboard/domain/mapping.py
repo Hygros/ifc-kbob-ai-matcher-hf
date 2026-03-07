@@ -9,6 +9,9 @@ from Dashboard.config import (
     DEFAULT_REINFORCEMENT_RATIO,
 )
 
+# Entity types that should be grouped by entity only (not by all fields)
+REINFORCEMENT_ENTITIES: set[str] = {"IfcReinforcingBar", "IfcReinforcingMesh", "IfcTendon"}
+
 
 # ---------------------------------------------------------------------------
 # Beton-Erkennung  (Concrete detection)
@@ -205,22 +208,74 @@ def _normalize_top_k_matches(matches) -> list[dict]:
     return normalized
 
 
+def _merge_matches(existing: list[dict], incoming: list[dict]) -> list[dict]:
+    """Merge two normalised match lists, keeping the highest score per material."""
+    best: dict[str, float | None] = {}
+    for m in existing + incoming:
+        mat = m.get("material")
+        if not mat:
+            continue
+        score = m.get("score")
+        prev = best.get(mat)
+        if prev is None or (score is not None and (prev is None or score > prev)):
+            best[mat] = score
+    merged = [{"material": mat, "score": sc} for mat, sc in best.items()]
+    merged.sort(
+        key=lambda item: (
+            item.get("score") is None,
+            -(item["score"] if item.get("score") is not None else float("-inf")),
+            str(item.get("material") or "").lower(),
+        )
+    )
+    return merged
+
+
 def build_ai_mapping_groups(base_df: pd.DataFrame) -> list[dict]:
     fields = ["IfcEntity", "PredefinedType", "Name", "Description", "Material", "Durchmesser", "MaterialLayerIndex"]
+    merge_fields = ["PredefinedType", "Name", "Description", "Material", "Durchmesser", "MaterialLayerIndex"]
     groups: dict[tuple, dict] = {}
     for _, row in base_df.iterrows():
         row_dict = row.to_dict()
         normalized_matches = _normalize_top_k_matches(row_dict.get("top_k_matches"))
-        signature = tuple(str(row_dict.get(field) or "").strip() for field in fields) + (
-            json.dumps(normalized_matches, ensure_ascii=False, sort_keys=True),
-        )
-        if signature not in groups:
-            groups[signature] = {
-                "row": row_dict,
-                "guids": [],
-                "matches": normalized_matches,
-            }
-        groups[signature]["guids"].append(row_dict.get("GUID"))
+        ifc_entity = str(row_dict.get("IfcEntity") or "").strip()
+        guid = row_dict.get("GUID")
+        layer_idx = row_dict.get("MaterialLayerIndex")
+
+        if ifc_entity in REINFORCEMENT_ENTITIES:
+            # Group all elements of the same reinforcement entity type together
+            signature = ("__rebar__", ifc_entity)
+            if signature in groups:
+                grp = groups[signature]
+                # Merge: set fields to None where values differ
+                for field in merge_fields:
+                    existing_val = str(grp["row"].get(field) or "").strip()
+                    new_val = str(row_dict.get(field) or "").strip()
+                    if existing_val != new_val:
+                        grp["row"][field] = None
+                grp["matches"] = _merge_matches(grp["matches"], normalized_matches)
+            else:
+                groups[signature] = {
+                    "row": row_dict,
+                    "guids": [],
+                    "guid_layer_map": {},
+                    "matches": normalized_matches,
+                }
+            groups[signature]["guids"].append(guid)
+            groups[signature]["guid_layer_map"][guid] = layer_idx
+        else:
+            signature = tuple(str(row_dict.get(field) or "").strip() for field in fields) + (
+                json.dumps(normalized_matches, ensure_ascii=False, sort_keys=True),
+            )
+            if signature not in groups:
+                groups[signature] = {
+                    "row": row_dict,
+                    "guids": [],
+                    "guid_layer_map": {},
+                    "matches": normalized_matches,
+                }
+            groups[signature]["guids"].append(guid)
+            groups[signature]["guid_layer_map"][guid] = layer_idx
+
     grouped_rows = list(groups.values())
     grouped_rows.sort(
         key=lambda group: (
