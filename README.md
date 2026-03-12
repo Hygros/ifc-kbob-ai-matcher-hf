@@ -7,7 +7,7 @@ Automatisierte Zuordnung von IFC-Bauelementen zu Ökobilanzdaten (KBOB) mit Sent
 Das Projekt besteht aus drei Hauptbereichen und einer gemeinsamen Codebasis:
 
 | Bereich | Zweck |
-|---------|-------|
+| --------- | ------- |
 | **Dashboard** | Streamlit-App: IFC-Upload, AI-Materialzuordnung, 3D-Viewer, Umweltindikator-Visualisierung |
 | **Evaluation** | Evaluation von Bi-Encoder- und Cross-Encoder-Modellen gegen erwartete Materialzuordnungen |
 | **Training** | Fine-Tuning von Sentence-Transformer-Modellen (BAAI/bge-m3) mit eigenen Trainingsdaten |
@@ -15,7 +15,7 @@ Das Projekt besteht aus drei Hauptbereichen und einer gemeinsamen Codebasis:
 
 ### Pipeline-Ablauf
 
-```
+```text
 IFC-Datei
   → core/ifc_extraction   (Elemente, Materialien, PropertySets → JSONL)
   → core/sbert             (Bi-Encoder-Matching + Cross-Encoder-Reranking gegen KBOB-DB)
@@ -24,7 +24,7 @@ IFC-Datei
 
 ## Projektstruktur
 
-```
+```text
 Matching/
 │
 ├── core/                              # Gemeinsam genutzte Module
@@ -187,7 +187,7 @@ python Evaluation/build_evaluation_report.py     # Nur Report generieren
 
 **Expected-Format** (eine Zeile pro Query, `|`-separiert für Alternativen, `::` für Relevanz-Gewichtung):
 
-```
+```text
 Tiefgründung Ortbetonbohrpfahl 900
 Material A | Material B | Material C
 Material A::1.0 | Material B::0.7
@@ -227,7 +227,7 @@ Details: [Training/README.md](Training/README.md).
 Konfiguration über `.env` oder Umgebungsvariablen (siehe [.env.example](.env.example)):
 
 | Variable | Beschreibung | Default |
-|----------|-------------|---------|
+| ---------- | ------------- | --------- |
 | `KBOB_DATABASE_PATH` | Pfad zur KBOB SQLite-Datenbank | `./Ökobilanzdaten.sqlite3` |
 | `SBERT_DEVICE` | Device erzwingen: `cpu` oder `cuda` | Auto (GPU ab 500 Queries) |
 | `SBERT_BATCH_SIZE` | Feste Batch-Size | `64` |

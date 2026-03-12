@@ -18,7 +18,13 @@ Desktop.ini
 
 # Environment variables
 .env
-SBERT/.hf_token
+core/sbert/.hf_token
+
+# Model cache (large binaries)
+models/
+
+# Material index cache
+.cache_material_index/
 
 # Jupyter Notebook checkpoints
 .ipynb_checkpoints/
