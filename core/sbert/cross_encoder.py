@@ -6,11 +6,12 @@ import os
 from sentence_transformers import CrossEncoder
 
 # --- Konfiguration ---
-DB_PATH = os.path.join(os.path.dirname(os.path.dirname(__file__)), "Ökobilanzdaten.sqlite3")
+_PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+DB_PATH = os.path.join(_PROJECT_ROOT, "Ökobilanzdaten.sqlite3")
 MATERIALS_TABLE = "Oekobilanzdaten"
 MATERIAL_COL = "Material"
 MODEL_NAME = "cross-encoder/nli-deberta-v3-base"  # change model here only
-MODEL_DIR = f"./models/{MODEL_NAME}"
+MODEL_DIR = os.path.join(_PROJECT_ROOT, "models", MODEL_NAME)
 TOP_K = 5
 USE_CUDA = True  # set False to force CPU
 

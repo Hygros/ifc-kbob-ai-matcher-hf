@@ -579,7 +579,7 @@ def render_tab_ai_mapping(df: pd.DataFrame | None) -> None:
                     manual_pairs = st.session_state.get("_manual_training_pairs", [])
                     if manual_pairs:
                         try:
-                            training_dir = Path(__file__).resolve().parent.parent.parent / "Trainingsdaten"
+                            training_dir = Path(__file__).resolve().parent.parent.parent / "Training" / "data"
                             total, added = export_training_pairs(manual_pairs, training_dir)
                             if added:
                                 st.info(f"Trainingsdaten: {added} neue Paare exportiert ({total} gesamt)")

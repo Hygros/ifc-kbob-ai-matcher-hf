@@ -21,7 +21,7 @@ if APP_ROOT not in sys.path:
 @st.cache_resource(show_spinner=False)
 def preload_sbert_resources(model_name: str) -> bool:
     """Load SBERT model + DB corpus embeddings once per Streamlit server process."""
-    import SBERT.Sentence_Transformer_V00 as sbert_mod
+    import core.sbert.sentence_transformer as sbert_mod
 
     try:
         _ = sbert_mod.get_global_sbert_model(model_name=model_name)
@@ -37,7 +37,7 @@ def preload_sbert_resources(model_name: str) -> bool:
 @st.cache_resource(show_spinner=False)
 def preload_cross_encoder_resources(model_name: str) -> bool:
     """Load Cross-Encoder model once per Streamlit server process."""
-    import SBERT.Sentence_Transformer_V00 as sbert_mod
+    import core.sbert.sentence_transformer as sbert_mod
 
     device = sbert_mod.resolve_runtime_device(0)
     sbert_mod.load_or_get_cross_encoder(model_name=model_name, device=device)
@@ -106,7 +106,6 @@ def save_ifc_for_viewer(uploaded_file) -> str | None:
 
 
 def parse_ifc(uploaded_file, model_name: str, cross_encoder_model_name: str | None = None):
-    ifc_export_script = os.path.join(APP_ROOT, "IFC_Extraction", "IFC-extraction-main.py")
     python_exe = os.path.join(APP_ROOT, ".venv", "Scripts", "python.exe")
     if hasattr(uploaded_file, "seek"):
         uploaded_file.seek(0)
@@ -116,10 +115,11 @@ def parse_ifc(uploaded_file, model_name: str, cross_encoder_model_name: str | No
         tmp_path = tmp.name
     try:
         subprocess.run(
-            [python_exe, ifc_export_script, tmp_path],
+            [python_exe, "-m", "core.ifc_extraction.ifc_extraction_main", tmp_path],
             capture_output=True,
             text=True,
             check=True,
+            cwd=APP_ROOT,
         )
         base = os.path.splitext(os.path.basename(tmp_path))[0]
         jsonl_path = os.path.join(os.path.dirname(tmp_path), base + ".jsonl")
@@ -152,7 +152,7 @@ def parse_ifc(uploaded_file, model_name: str, cross_encoder_model_name: str | No
 
         target_jsonl_path = os.path.join(dashboard_data_dir, ifc_base + ".jsonl")
         if os.path.exists(jsonl_path):
-            import SBERT.Sentence_Transformer_V00 as sbert_mod
+            import core.sbert.sentence_transformer as sbert_mod
 
             try:
                 sbert_mod.run_sbert_matching(

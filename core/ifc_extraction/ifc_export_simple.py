@@ -1,7 +1,7 @@
 import os
 import ifcopenshell
 import ifcopenshell.util.element
-from ifc_material_extract_util import extract_materials
+from .ifc_material_extract_util import extract_materials
 import sys
 from tkinter import filedialog
 import tkinter as tk

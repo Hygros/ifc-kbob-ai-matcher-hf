@@ -4,7 +4,7 @@ import sys
 import json
 import argparse
 from collections import Counter
-from ifc_extraction_core import DEFAULT_PROPERTY_FIELDS, extract_export_dicts_from_ifc_file
+from .ifc_extraction_core import DEFAULT_PROPERTY_FIELDS, extract_export_dicts_from_ifc_file
 
 def _stringify_for_csv(value):
     if isinstance(value, list):

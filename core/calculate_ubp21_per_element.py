@@ -6,7 +6,7 @@ import tkinter as tk
 from tkinter import filedialog
 
 # --- Konfiguration ---
-DATABASE_PATH = os.environ.get("KBOB_DATABASE_PATH", os.path.join(os.path.dirname(__file__), "Ökobilanzdaten.sqlite3"))
+DATABASE_PATH = os.environ.get("KBOB_DATABASE_PATH", os.path.join(os.path.dirname(os.path.dirname(__file__)), "Ökobilanzdaten.sqlite3"))
 TABLE_NAME = "Oekobilanzdaten"
 
 COLUMN_UUID = "UUID"
@@ -19,7 +19,7 @@ COLUMN_UNIT = "Einheit"
 METADATA_COLUMNS = {COLUMN_UUID, COLUMN_MATERIAL, COLUMN_DENSITY, COLUMN_BEZUG, COLUMN_UNIT}
 
 DEFAULT_EXPORT_DIR = os.path.join(
-    os.path.dirname(__file__),
+    os.path.dirname(os.path.dirname(__file__)),
     "IFC-Modelle",
     "Resultate_UBP_Berechnung",
 )

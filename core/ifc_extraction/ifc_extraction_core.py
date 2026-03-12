@@ -4,7 +4,7 @@ from collections import defaultdict
 import ifcopenshell
 import ifcopenshell.util.element
 import ifcopenshell.util.unit
-from ifc_material_extract_util import extract_materials
+from .ifc_material_extract_util import extract_materials
 
 
 NO_AGGREGATES_ALLOWED_SUBENTITY_TYPES = {"IfcCovering", "IfcReinforcingBar"}

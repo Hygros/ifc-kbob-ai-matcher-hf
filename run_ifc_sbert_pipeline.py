@@ -14,12 +14,12 @@ def choose_ifc_file():
 
 # Schritt 2: IFC-Export als Subprozess aufrufen
 def run_ifc_export(ifc_path):
-    script_path = os.path.join(os.path.dirname(__file__), "IFC_Extraction", "IFC-extraction-main.py")
-    if not os.path.exists(script_path):
-        print(f"IFC-Export-Skript nicht gefunden: {script_path}")
-        sys.exit(1)
+    project_root = os.path.dirname(__file__)
     print(f"Starte IFC-Export für: {ifc_path}")
-    result = subprocess.run([sys.executable, script_path, ifc_path], capture_output=True, text=True)
+    result = subprocess.run(
+        [sys.executable, "-m", "core.ifc_extraction.ifc_extraction_main", ifc_path],
+        capture_output=True, text=True, cwd=project_root,
+    )
     print(result.stdout)
     if result.returncode != 0:
         print("Fehler beim IFC-Export:")
@@ -47,7 +47,7 @@ def main():
     run_ifc_export(ifc_path)
     jsonl_path = get_jsonl_path_from_ifc(ifc_path)
     print(f"Verwende JSONL-Datei: {jsonl_path}")
-    from SBERT.Sentence_Transformer_V00 import run_sbert_matching
+    from core.sbert.sentence_transformer import run_sbert_matching
     run_sbert_matching(jsonl_path)
 
 if __name__ == "__main__":

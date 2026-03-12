@@ -3,7 +3,7 @@ import sys
 import os
 
 # IFC-Datei laden (Pfad als CLI-Argument oder Beispielpfad)
-_default_ifc = os.path.join(os.path.dirname(__file__), "..", "IFC-Modelle", "Tekla", "Bohrpfahl-Bewehrt-Beziehung.ifc")
+_default_ifc = os.path.join(os.path.dirname(__file__), "..", "..", "IFC-Modelle", "Tekla", "Bohrpfahl-Bewehrt-Beziehung.ifc")
 ifc_file = ifcopenshell.open(sys.argv[1] if len(sys.argv) > 1 else _default_ifc)
 
 def get_parent_assembly(element):
