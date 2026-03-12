@@ -109,7 +109,7 @@ Matching/
 
 ## Voraussetzungen
 
-- **Python 3.10+**
+- **Python 3.12**
 - **KBOB-Datenbank:** `Ökobilanzdaten.sqlite3` (bereinigte und gefilterte Ökobilanzdaten der KBOB)
 - **Optional:** Node.js / pnpm für die 3D-IFC-Viewer-Integration im Dashboard
 
