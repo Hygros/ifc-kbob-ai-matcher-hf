@@ -159,7 +159,7 @@ def _get_score_lookup(matches: list) -> dict:
 NO_SELECTION_LABEL = "-- keine Auswahl --"
 
 
-def _render_viewer(ifc_filename: str | None, active_guid: str | None, active_guids: list[str]) -> None:
+def _render_viewer(ifc_filename: str | None, active_guid: str | None, active_guids: list[str]) -> bool:
     static_dir = os.path.abspath(os.path.join(os.path.dirname(os.path.dirname(__file__)), "static"))
     if ifc_filename:
         ifc_path = os.path.join(static_dir, ifc_filename)
@@ -204,9 +204,10 @@ def _render_viewer(ifc_filename: str | None, active_guid: str | None, active_gui
             height=0,
             width=0,
         )
-        render_viewer_bridge(active_guid, active_guids)
+        # Bridge is rendered later, after group labels are in the DOM, with guid_map.
     else:
         st.info("Kein IFC-Modell fuer den Viewer gefunden. Lade eine IFC-Datei im Upload-Tab.")
+    return bool(ifc_path and os.path.exists(ifc_path))
 
 
 def render_tab_ai_mapping(df: pd.DataFrame | None) -> None:
@@ -275,11 +276,11 @@ def render_tab_ai_mapping(df: pd.DataFrame | None) -> None:
     left_col, right_col = st.columns([left_width_percent, right_width_percent])
 
     with right_col:
-        _render_viewer(ifc_filename, active_guid, active_guids)
+        viewer_active = _render_viewer(ifc_filename, active_guid, active_guids)
 
     with left_col:
         active_guid = st.session_state.get("viewer_selected_guid") if isinstance(st.session_state.get("viewer_selected_guid"), str) else None
-        base_cols = ["IfcEntity", "PredefinedType", "Name", "GUID", "MaterialLayerIndex", "Description", "Material", "Durchmesser", "top_k_matches", "AggregateChildGUIDs"]
+        base_cols = ["IfcEntity", "PredefinedType", "Name", "GUID", "MaterialLayerIndex", "Description", "Material", "Durchmesser", "top_k_matches", "AggregateChildGUIDs", "AggregateParentGUID"]
         if df is not None and hasattr(df, "columns"):
             for col in base_cols:
                 if col not in df.columns:
@@ -329,6 +330,16 @@ def render_tab_ai_mapping(df: pd.DataFrame | None) -> None:
 
         grouped_base = build_ai_mapping_groups(base)
 
+        # Collect GUIDs that have their own group — these should NOT be
+        # included in another group's viewer/map GUIDs to avoid cross-
+        # contamination (e.g. IfcCovering has own row → don't add its
+        # GUID to the parent IfcSlab group).
+        owned_guids: set[str] = set()
+        for _grp in grouped_base:
+            for _g in _grp["guids"]:
+                if isinstance(_g, str):
+                    owned_guids.add(_g)
+
         all_kbob_materials, kbob_db_path, kbob_load_error = load_all_kbob_materials()
         if kbob_db_path:
             st.session_state["kbob_db_path"] = kbob_db_path
@@ -374,12 +385,21 @@ def render_tab_ai_mapping(df: pd.DataFrame | None) -> None:
             if len(guids) > 1:
                 element_label = f"{element_label} <span style='color: #999;'>({len(guids)} Elemente)</span>"
             aggregate_child_guids = group.get("aggregate_child_guids", [])
-            all_viewer_guids = guids + [g for g in aggregate_child_guids if isinstance(g, str) and g not in guids]
+            # Only include child GUIDs that don't have their own group
+            # (e.g. IfcBeam under IfcWall with no own row → include;
+            #  IfcCovering under IfcSlab with own row → exclude)
+            unowned_child_guids = [
+                g for g in aggregate_child_guids
+                if isinstance(g, str) and g not in owned_guids and g not in guids
+            ]
+            # GUIDs for viewer selection AND reverse-lookup (no parent GUIDs)
+            all_viewer_guids = guids + unowned_child_guids
             is_active = bool(active_guid) and active_guid in all_viewer_guids
-            active_style = "background-color: #fff3cd; padding: 0.15rem 0.35rem; border-radius: 4px;" if is_active else ""
+            active_style = "background-color: #d9ffcd; padding: 0.15rem 0.35rem; border-radius: 4px;" if is_active else ""
             guid_attr = ",".join(str(guid).replace("'", "") for guid in all_viewer_guids)
+            label_id = f"ai-map-group-{group_index}"
             st.markdown(
-                f"<div class='ai-map-group-label' data-guids='{guid_attr}' style='font-size: 1.1em; font-weight: bold; margin-bottom: 0.2em; text-align: left; width: 100%; {active_style}'>{element_label}</div>",
+                f"<div id='{label_id}' class='ai-map-group-label' data-guids='{guid_attr}' style='font-size: 1.1em; font-weight: bold; margin-bottom: 0.2em; text-align: left; width: 100%; {active_style}'>{element_label}</div>",
                 unsafe_allow_html=True,
             )
 
@@ -549,6 +569,21 @@ def render_tab_ai_mapping(df: pd.DataFrame | None) -> None:
                     update_entry["reinforcement_ratio_kg_m3"] = None
                     update_entry["reinforcement_source"] = None
                 updates.append(update_entry)
+
+    # --- Build guid_map and render viewer bridge after all groups are in the DOM ---
+    if viewer_active:
+        guid_map: dict[str, list[int]] = {}
+        for gi, grp in enumerate(grouped_base):
+            grp_guids = [g for g in grp["guids"] if isinstance(g, str)]
+            child_guids = grp.get("aggregate_child_guids", [])
+            # Only include children that don't have their own group
+            map_guids = list(grp_guids)
+            for g in child_guids:
+                if isinstance(g, str) and g not in owned_guids and g not in map_guids:
+                    map_guids.append(g)
+            for g in map_guids:
+                guid_map.setdefault(g, []).append(gi)
+        render_viewer_bridge(active_guid, active_guids, guid_map=guid_map)
 
     with right_col:
         submitted = st.button("💾 Auswahl speichern", use_container_width=True)

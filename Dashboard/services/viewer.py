@@ -52,17 +52,23 @@ def ensure_ifclite_viewer(viewer_root: str, port: int = 3000) -> None:
     )
 
 
-def render_viewer_bridge(selected_guid: str | None, selected_guids: list[str] | None = None) -> None:
+def render_viewer_bridge(
+    selected_guid: str | None,
+    selected_guids: list[str] | None = None,
+    guid_map: dict[str, list[int]] | None = None,
+) -> None:
     if not isinstance(selected_guid, str):
         selected_guid = None
     if not isinstance(selected_guids, list):
         selected_guids = []
     selected_guids = [guid for guid in selected_guids if isinstance(guid, str) and guid.strip()]
     payload = json.dumps({"guid": selected_guid, "guids": selected_guids})
+    guid_map_json = json.dumps(guid_map or {})
     bridge_html = f"""
 <script>
 (() => {{
     const selected = {payload};
+    const GUID_MAP = {guid_map_json};
     const parentWindow = window.parent;
     const _viewerFrame = parentWindow.document.querySelector('iframe.viewer-iframe');
     let VIEWER_ORIGIN = 'http://localhost:3000';
@@ -70,31 +76,39 @@ def render_viewer_bridge(selected_guid: str | None, selected_guids: list[str] | 
         try {{ VIEWER_ORIGIN = new URL(_viewerFrame.src).origin; }} catch(e) {{}}
     }}
     const getViewerFrame = () => parentWindow.document.querySelector('iframe.viewer-iframe');
+
+    let _highlightedEls = [];
     const highlightGuid = (guid, shouldScroll = false) => {{
+        _highlightedEls.forEach((el) => {{
+            el.style.backgroundColor = '';
+            el.style.padding = '';
+            el.style.borderRadius = '';
+        }});
+        _highlightedEls = [];
+
+        if (!guid) return;
+
+        const groupIndices = GUID_MAP[guid];
+        if (!groupIndices || !groupIndices.length) return;
+
         const labels = parentWindow.document.querySelectorAll('.ai-map-group-label');
-        let matchedLabel = null;
-        labels.forEach((label) => {{
-            const raw = String(label.getAttribute('data-guids') || '');
-            const guids = raw.split(',').map((entry) => entry.trim()).filter(Boolean);
-            if (guid && guids.includes(guid)) {{
-                label.style.backgroundColor = '#fff3cd';
-                label.style.padding = '0.15rem 0.35rem';
-                label.style.borderRadius = '4px';
-                if (!matchedLabel) {{
-                    matchedLabel = label;
-                }}
-            }} else {{
-                label.style.backgroundColor = '';
-                label.style.padding = '';
-                label.style.borderRadius = '';
+        let firstEl = null;
+        groupIndices.forEach((idx) => {{
+            const el = labels[idx];
+            if (el) {{
+                el.style.backgroundColor = '#d9ffcd';
+                el.style.padding = '0.15rem 0.35rem';
+                el.style.borderRadius = '4px';
+                _highlightedEls.push(el);
+                if (!firstEl) firstEl = el;
             }}
         }});
 
-        if (shouldScroll && matchedLabel) {{
+        if (shouldScroll && firstEl) {{
             try {{
-                matchedLabel.scrollIntoView({{ behavior: 'instant', block: 'center', inline: 'nearest' }});
+                firstEl.scrollIntoView({{ behavior: 'instant', block: 'center', inline: 'nearest' }});
             }} catch (err) {{
-                matchedLabel.scrollIntoView();
+                firstEl.scrollIntoView();
             }}
         }}
     }};
@@ -144,6 +158,10 @@ def render_viewer_bridge(selected_guid: str | None, selected_guids: list[str] | 
         if (!msg || typeof msg !== 'object') return;
         if (msg.type === 'ifc-lite-viewer-selection') {{
             const guid = typeof msg.guid === 'string' ? msg.guid : null;
+            const mapHit = guid ? GUID_MAP[guid] : null;
+            console.log('[viewer-bridge] viewer-selection guid=', guid,
+                        'mapHit=', mapHit,
+                        'labels=', parentWindow.document.querySelectorAll('.ai-map-group-label').length);
             highlightGuid(guid, true);
         }}
     }};

@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef } from 'react';
 import { useIfc } from '@/hooks/useIfc';
 import { resolveEntityRef, useViewerStore } from '@/store';
+import { IfcQuery } from '@ifc-lite/query';
 
 type LegacySelectGuidMessage = {
     type: 'ifc-lite-select-guid';
@@ -58,6 +59,7 @@ function resolveGlobalIdsFromGuids(guids: string[]): number[] {
     }
 
     const resolved = new Set<number>();
+    const remaining = new Set(wanted);
 
     for (const [, model] of state.models) {
         const entities = model.ifcDataStore?.entities;
@@ -70,6 +72,7 @@ function resolveGlobalIdsFromGuids(guids: string[]): number[] {
             const localExpressId = entities.getExpressIdByGlobalId(guid);
             if (localExpressId > 0) {
                 resolved.add(localExpressId + offset);
+                remaining.delete(guid);
             }
         }
     }
@@ -80,6 +83,49 @@ function resolveGlobalIdsFromGuids(guids: string[]): number[] {
             const expressId = entities.getExpressIdByGlobalId(guid);
             if (expressId > 0) {
                 resolved.add(expressId);
+                remaining.delete(guid);
+            }
+        }
+    }
+
+    // Fallback: for GUIDs not in the pre-parsed entity table (e.g. IfcCovering),
+    // use on-demand extraction via IfcQuery to search entityIndex.
+    // Narrow search to types that have geometry but aren't pre-indexed for GlobalId.
+    if (remaining.size > 0) {
+        const fallbackTypes = ['IFCCOVERING', 'IFCANNOTATION', 'IFCGRID',
+            'IFCBUILDINGSYSTEM', 'IFCDISTRIBUTIONPORT', 'IFCPROXY'];
+        for (const [, model] of state.models) {
+            const ds = model.ifcDataStore;
+            if (!ds?.entityIndex?.byType) continue;
+            const offset = model.idOffset ?? 0;
+            const q = new IfcQuery(ds);
+            for (const typeName of fallbackTypes) {
+                const ids = ds.entityIndex.byType.get(typeName);
+                if (!ids) continue;
+                for (const expressId of ids) {
+                    if (remaining.size === 0) break;
+                    const node = q.entity(expressId);
+                    if (node?.globalId && remaining.has(node.globalId)) {
+                        resolved.add(expressId + offset);
+                        remaining.delete(node.globalId);
+                    }
+                }
+            }
+        }
+        // Legacy fallback
+        if (remaining.size > 0 && state.ifcDataStore?.entityIndex?.byType) {
+            const q = new IfcQuery(state.ifcDataStore);
+            for (const typeName of fallbackTypes) {
+                const ids = state.ifcDataStore.entityIndex.byType.get(typeName);
+                if (!ids) continue;
+                for (const expressId of ids) {
+                    if (remaining.size === 0) break;
+                    const node = q.entity(expressId);
+                    if (node?.globalId && remaining.has(node.globalId)) {
+                        resolved.add(expressId);
+                        remaining.delete(node.globalId);
+                    }
+                }
             }
         }
     }
@@ -115,10 +161,22 @@ export function StreamlitBridge() {
         const resolved = state.resolveGlobalIdFromModels(globalId);
         if (resolved) {
             const model = state.models.get(resolved.modelId);
-            return model?.ifcDataStore?.entities?.getGlobalId(resolved.expressId) || null;
+            const fast = model?.ifcDataStore?.entities?.getGlobalId(resolved.expressId);
+            if (fast) return fast;
+            // Fallback: on-demand extraction for entity types not in GEOMETRY_TYPES
+            // (e.g. IfcCovering whose GlobalId isn't pre-parsed into the entity table)
+            if (model?.ifcDataStore) {
+                const q = new IfcQuery(model.ifcDataStore);
+                const node = q.entity(resolved.expressId);
+                if (node?.globalId) return node.globalId;
+            }
         }
         if (state.ifcDataStore?.entities) {
-            return state.ifcDataStore.entities.getGlobalId(globalId) || null;
+            const fast = state.ifcDataStore.entities.getGlobalId(globalId);
+            if (fast) return fast;
+            const q = new IfcQuery(state.ifcDataStore);
+            const node = q.entity(globalId);
+            if (node?.globalId) return node.globalId;
         }
         return null;
     };
@@ -129,11 +187,20 @@ export function StreamlitBridge() {
         }
         const state = useViewerStore.getState();
         const model = state.models.get(selectedEntity.modelId);
-        if (model?.ifcDataStore?.entities) {
-            return model.ifcDataStore.entities.getGlobalId(selectedEntity.expressId) || null;
+        if (model?.ifcDataStore) {
+            const fast = model.ifcDataStore.entities?.getGlobalId(selectedEntity.expressId);
+            if (fast) return fast;
+            // Fallback: on-demand extraction for entity types not in GEOMETRY_TYPES
+            const q = new IfcQuery(model.ifcDataStore);
+            const node = q.entity(selectedEntity.expressId);
+            if (node?.globalId) return node.globalId;
         }
-        if (selectedEntity.modelId === 'legacy' && state.ifcDataStore?.entities) {
-            return state.ifcDataStore.entities.getGlobalId(selectedEntity.expressId) || null;
+        if (selectedEntity.modelId === 'legacy' && state.ifcDataStore) {
+            const fast = state.ifcDataStore.entities?.getGlobalId(selectedEntity.expressId);
+            if (fast) return fast;
+            const q = new IfcQuery(state.ifcDataStore);
+            const node = q.entity(selectedEntity.expressId);
+            if (node?.globalId) return node.globalId;
         }
         return null;
     };

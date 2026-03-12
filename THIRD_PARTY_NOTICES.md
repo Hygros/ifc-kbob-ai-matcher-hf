@@ -40,4 +40,6 @@ commercially, switch to an alternative cross-encoder (e.g., `BAAI/bge-reranker-v
 
 | Component | License |
 |---|---|
-| [ifc-lite viewer](Dashboard/ifc-lite/) | See `Dashboard/ifc-lite/LICENSE` |
+| [ifc-lite](https://github.com/louistrue/ifc-lite) | MPL-2.0 |
+
+Credit: The integrated dashboard viewer is based on the open-source ifc-lite project by [Louis True](https://github.com/louistrue).

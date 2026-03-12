@@ -1,6 +1,12 @@
 # IFClite Update-Anleitung (für Streamlit-Integration)
 
-Diese Anleitung beschreibt den **sicheren Update-Prozess** für `Dashboard/ifc-lite` inklusive der im Dashboard genutzten Selektionsfunktionen.
+Diese Anleitung beschreibt den **Update-Prozess** für `Dashboard/ifc-lite` inklusive der im Dashboard genutzten Selektionsfunktionen.
+
+## Upstream-Credits
+
+`Dashboard/ifc-lite` basiert auf dem Open-Source-Projekt [ifc-lite](https://github.com/louistrue/ifc-lite) von [Louis True](https://github.com/louistrue) (Lizenz: MPL-2.0).
+
+Bitte diese Attribution sowie den Eintrag in `THIRD_PARTY_NOTICES.md` bei Updates beibehalten.
 
 ---
 

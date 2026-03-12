@@ -70,6 +70,22 @@ def _get_aggregate_children(obj):
     return _rel_related_objects(getattr(obj, "IsDecomposedBy", []), "IfcRelAggregates", "RelatedObjects")
 
 
+def _get_covering_children(obj):
+    """Return IfcCovering elements related via IfcRelCoversBldgElements."""
+    return _rel_related_objects(getattr(obj, "HasCoverings", []), "IfcRelCoversBldgElements", "RelatedCoverings")
+
+
+def _get_all_children(obj):
+    """Return aggregate children + covering children (deduplicated)."""
+    children = list(_get_aggregate_children(obj))
+    seen = {_obj_id(c) for c in children}
+    for cov in _get_covering_children(obj):
+        if _obj_id(cov) not in seen:
+            children.append(cov)
+            seen.add(_obj_id(cov))
+    return children
+
+
 def _is_allowed_no_aggregates_subentity(element):
     if not hasattr(element, "is_a"):
         return False
@@ -180,14 +196,14 @@ def _build_no_aggregates_elements(elements):
                 has_rebar_map[guid] = rebar_present
 
     # --- Build aggregate_child_guids_map ---
-    # For each selected element, collect GUIDs of all aggregate descendants
-    # that are NOT themselves selected.  These descendants have geometry in
-    # the viewer but no own JSONL entry – the dashboard needs them so that
-    # clicking such a child in the viewer still highlights the parent row.
+    # For each selected element, collect GUIDs of all aggregate/covering
+    # descendants.  These may have geometry in the viewer; the dashboard
+    # needs them so that clicking such a child in the viewer still
+    # highlights the parent row.
     aggregate_child_guids_map: dict[str, list[str]] = {}
     for eid, elem in selected.items():
         descendant_guids: list[str] = []
-        queue = list(_get_aggregate_children(elem))
+        queue = list(_get_all_children(elem))
         visited = {eid}
         while queue:
             child = queue.pop()
@@ -195,18 +211,44 @@ def _build_no_aggregates_elements(elements):
             if child_eid in visited:
                 continue
             visited.add(child_eid)
-            if child_eid in selected:
-                continue
             child_guid = getattr(child, "GlobalId", None)
             if child_guid:
                 descendant_guids.append(child_guid)
-            queue.extend(_get_aggregate_children(child))
+            queue.extend(_get_all_children(child))
         if descendant_guids:
             elem_guid = getattr(elem, "GlobalId", None)
             if elem_guid:
                 aggregate_child_guids_map[elem_guid] = descendant_guids
 
-    return list(selected.values()), has_rebar_map, aggregate_child_guids_map
+    # --- Build parent_guid_map ---
+    # Maps element-GlobalId → parent-GlobalId for elements with an aggregate
+    # parent.  The dashboard uses this so that exception children (e.g.
+    # IfcCovering) can include their parent's GUID in the viewer selection.
+    parent_guid_map: dict[str, str] = {}
+    for eid, elem in selected.items():
+        pid = element_to_parent_id.get(eid)
+        if pid is None:
+            continue
+        elem_guid = getattr(elem, "GlobalId", None)
+        if not elem_guid:
+            continue
+        # The parent might be in selected or might be an external element
+        # (e.g. IfcElementAssembly). Resolve its GlobalId either way.
+        parent_elem = elements_by_id.get(pid)
+        if parent_elem is None:
+            # Parent not in exportable elements – try to find the actual
+            # IFC entity object via the relationship.
+            for rel in getattr(elem, "Decomposes", []) or []:
+                if hasattr(rel, "is_a") and rel.is_a("IfcRelAggregates"):
+                    p = getattr(rel, "RelatingObject", None)
+                    if p is not None and _obj_id(p) == pid:
+                        parent_elem = p
+                        break
+        parent_guid = getattr(parent_elem, "GlobalId", None) if parent_elem else None
+        if parent_guid and parent_guid != elem_guid:
+            parent_guid_map[elem_guid] = parent_guid
+
+    return list(selected.values()), has_rebar_map, aggregate_child_guids_map, parent_guid_map
 
 
 def is_exportable_ifc_element(element):
@@ -272,7 +314,7 @@ def _should_compute_diameter(ifc_entity):
     return ifc_entity in DIAMETER_CANDIDATE_ENTITIES
 
 
-def build_export_dicts(model, elements, property_fields, units, has_rebar_map=None, aggregate_child_guids_map=None):
+def build_export_dicts(model, elements, property_fields, units, has_rebar_map=None, aggregate_child_guids_map=None, parent_guid_map=None):
     """Build list of dicts for JSONL export.
 
     *has_rebar_map* (optional) maps element-GlobalId to ``True`` when the
@@ -281,11 +323,17 @@ def build_export_dicts(model, elements, property_fields, units, has_rebar_map=No
     *aggregate_child_guids_map* (optional) maps element-GlobalId to a list of
     descendant GlobalIds whose geometry is visible in the viewer but that have
     no own JSONL row (absorbed by the parent during aggregation flattening).
+
+    *parent_guid_map* (optional) maps element-GlobalId to its aggregate
+    parent's GlobalId.  Used so that exception children (IfcCovering etc.)
+    can be selected in the viewer via their parent's geometry.
     """
     if has_rebar_map is None:
         has_rebar_map = {}
     if aggregate_child_guids_map is None:
         aggregate_child_guids_map = {}
+    if parent_guid_map is None:
+        parent_guid_map = {}
     export_dicts = []
     for element in elements:
         property_sets = ifcopenshell.util.element.get_psets(element)
@@ -345,6 +393,10 @@ def build_export_dicts(model, elements, property_fields, units, has_rebar_map=No
         if guid and guid in aggregate_child_guids_map:
             base_dict["AggregateChildGUIDs"] = aggregate_child_guids_map[guid]
 
+        # Annotate aggregate parent GUID for viewer selection
+        if guid and guid in parent_guid_map:
+            base_dict["AggregateParentGUID"] = parent_guid_map[guid]
+
         if materials:
             layer_thicknesses = [_to_float(m.get("LayerThickness")) for m in materials]
             can_split_by_thickness = all(t is not None and t > 0 for t in layer_thicknesses)
@@ -382,5 +434,5 @@ def extract_export_dicts_from_ifc_file(ifc_file_path, property_fields=None):
     units = get_ifc_units(model)
     fields = property_fields or DEFAULT_PROPERTY_FIELDS
     elements = [element for element in model.by_type("IfcElement") if is_exportable_ifc_element(element)]
-    elements_no_aggregates, has_rebar_map, aggregate_child_guids_map = _build_no_aggregates_elements(elements)
-    return build_export_dicts(model, elements_no_aggregates, fields, units, has_rebar_map=has_rebar_map, aggregate_child_guids_map=aggregate_child_guids_map)
+    elements_no_aggregates, has_rebar_map, aggregate_child_guids_map, parent_guid_map = _build_no_aggregates_elements(elements)
+    return build_export_dicts(model, elements_no_aggregates, fields, units, has_rebar_map=has_rebar_map, aggregate_child_guids_map=aggregate_child_guids_map, parent_guid_map=parent_guid_map)
