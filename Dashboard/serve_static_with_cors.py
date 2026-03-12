@@ -1,10 +1,20 @@
 
 import http.server
+import os
 from http.server import ThreadingHTTPServer
+
+_ALLOWED_ORIGINS = os.environ.get(
+    "CORS_ALLOWED_ORIGINS", "http://127.0.0.1:8501,http://localhost:8501,http://127.0.0.1:3000,http://localhost:3000"
+).split(",")
+
+
 class CORSRequestHandler(http.server.SimpleHTTPRequestHandler):
     protocol_version = "HTTP/1.1"
+
     def end_headers(self):
-        self.send_header('Access-Control-Allow-Origin', '*')
+        origin = self.headers.get("Origin", "")
+        if origin in _ALLOWED_ORIGINS:
+            self.send_header("Access-Control-Allow-Origin", origin)
         super().end_headers()
 
 if __name__ == '__main__':

@@ -29,10 +29,34 @@ Dieses Projekt bietet eine Pipeline zur Extraktion, Analyse und Bewertung von Ba
 
 ## Voraussetzungen
 
-- Python 3.8+
-- Pakete: `ifcopenshell`, `sentence-transformers`, `streamlit`, `torch`, `sqlite3`, u.a.
-- KBOB-Datenbank: `Ökobilanzdaten.sqlite3` im Projektverzeichnis
-- Optional: Lokale Modelle im kanonischen `models/`-Ordner im Projekt-Root
+- Python 3.10+
+- KBOB-Datenbank: `Ökobilanzdaten.sqlite3` (nicht im Repo enthalten — eigene Kopie bereitstellen)
+- Optional: Node.js / pnpm für die IFC-Viewer-Integration
+
+## Quickstart
+
+```bash
+# 1. Repository klonen
+git clone https://github.com/<your-org>/Matching.git
+cd Matching
+
+# 2. Virtuelle Umgebung erstellen und aktivieren
+python -m venv .venv
+# Windows:
+.venv\Scripts\activate
+# Linux/macOS:
+source .venv/bin/activate
+
+# 3. Abhängigkeiten installieren
+pip install -r requirements.txt
+
+# 4. Umgebungsvariablen konfigurieren
+cp .env.example .env
+# → KBOB_DATABASE_PATH in .env auf den Pfad zur SQLite-Datenbank setzen
+
+# 5. Dashboard starten
+streamlit run Dashboard/app_with_viewer.py
+```
 
 ## Nutzung
 
@@ -77,7 +101,12 @@ Batch-Benchmark manuell starten:
 
 ## Lizenz
 
-Noch ergänzen
+Dieses Projekt steht unter der [MIT-Lizenz](LICENSE).
+
+Informationen zu Drittbibliotheken und Modell-Lizenzen: [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
+
+> **Hinweis:** Einige optionale Cross-Encoder-Modelle (z. B. Jina Reranker) stehen unter
+> nicht-kommerziellen Lizenzen. Details siehe `THIRD_PARTY_NOTICES.md`.
 
 ## Evaluation von Modellen
 

@@ -1,7 +1,9 @@
 import ifcopenshell
+import sys
+import os
 
 # Pfad zur IFC4-Datei anpassen
-ifc_file_path = r"C:\Users\wpx619\AAA_Python_MTH\Matching\IFC-Modelle\Tekla\Bohrpfahl.ifc"
+ifc_file_path = sys.argv[1] if len(sys.argv) > 1 else os.path.join(os.path.dirname(__file__), "IFC-Modelle", "Tekla", "Bohrpfahl.ifc")
 
 # IFC-Datei laden
 ifc_file = ifcopenshell.open(ifc_file_path)

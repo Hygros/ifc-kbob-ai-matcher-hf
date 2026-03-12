@@ -63,6 +63,7 @@ def render_viewer_bridge(selected_guid: str | None, selected_guids: list[str] | 
 <script>
 (() => {{
     const selected = {payload};
+    const VIEWER_ORIGIN = window.location.origin || 'http://127.0.0.1:3000';
     const parentWindow = window.parent;
     const getViewerFrame = () => parentWindow.document.querySelector('iframe.viewer-iframe');
     const highlightGuid = (guid, shouldScroll = false) => {{
@@ -97,8 +98,8 @@ def render_viewer_bridge(selected_guid: str | None, selected_guids: list[str] | 
     const postClearSelection = () => {{
         const frame = getViewerFrame();
         if (frame && frame.contentWindow) {{
-            frame.contentWindow.postMessage({{ type: 'ifc-lite-select-guid', guid: null }}, '*');
-            frame.contentWindow.postMessage({{ type: 'ifc-lite-select-guids', guids: [] }}, '*');
+            frame.contentWindow.postMessage({{ type: 'ifc-lite-select-guid', guid: null }}, VIEWER_ORIGIN);
+            frame.contentWindow.postMessage({{ type: 'ifc-lite-select-guids', guids: [] }}, VIEWER_ORIGIN);
         }}
         highlightGuid(null);
     }};
@@ -134,6 +135,7 @@ def render_viewer_bridge(selected_guid: str | None, selected_guids: list[str] | 
         parentWindow.removeEventListener('message', parentWindow.__ifcLiteSelectionMessageHandler);
     }}
     parentWindow.__ifcLiteSelectionMessageHandler = (event) => {{
+        if (event.origin !== VIEWER_ORIGIN && event.origin !== window.location.origin) return;
         const msg = event.data;
         if (!msg || typeof msg !== 'object') return;
         if (msg.type === 'ifc-lite-viewer-selection') {{
@@ -190,9 +192,9 @@ def render_viewer_bridge(selected_guid: str | None, selected_guids: list[str] | 
         const frame = getViewerFrame();
         if (frame && frame.contentWindow) {{
             if (Array.isArray(selected.guids) && selected.guids.length > 1) {{
-                frame.contentWindow.postMessage({{ type: 'ifc-lite-select-guids', guids: selected.guids }}, '*');
+                frame.contentWindow.postMessage({{ type: 'ifc-lite-select-guids', guids: selected.guids }}, VIEWER_ORIGIN);
             }} else {{
-                frame.contentWindow.postMessage({{ type: 'ifc-lite-select-guid', guid: selected.guid || null }}, '*');
+                frame.contentWindow.postMessage({{ type: 'ifc-lite-select-guid', guid: selected.guid || null }}, VIEWER_ORIGIN);
             }}
             parentWindow.__ifcLiteLastSelectionSig = currentSelectionSig;
         }}

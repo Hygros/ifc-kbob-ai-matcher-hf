@@ -1,6 +1,7 @@
 $schema: https://azuremlschemas.azureedge.net/latest/commandJob.schema.json
 command: >-
-  python Evaluation/run_evaluation_pipeline.py --query-source Evaluation/exports/queries/meine_queries.txt --expected-file Evaluation/expected_material/mein_expected.txt --cross-encoder-model BAAI/bge-reranker-v2-m3 --rerank-top-n 30
+  python Evaluation/run_evaluation_pipeline.py --query-source Evaluation/exports/queries/ifcentity_material.txt --expected-file Evaluation/expected_material/expected.txt --cross-encoder-model BAAI/bge-reranker-v2-m3 --rerank-top-n 30
+
 
 code: .
 environment: azureml:sbert-eval-env@latest

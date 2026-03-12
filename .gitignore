@@ -74,8 +74,23 @@ yarn-error.log*
 IFC-Modelle/Resultate_UBP_Berechnung/
 IFC-Modelle/AFRY/
 
+# Legacy / experimental
+Dashboard/old/
+SBERT/old/
+
 # SBERT-Models
 models/
 
+# Evaluation artifacts (generated outputs, logs)
 Evaluation/azure
 Evaluation/exports/azure_logs
+Evaluation/exports/model_evaluation/
+Training/outputs/
+Training/artifacts/
+
+# Large / generated export files
+*.sqlite3
+*.log
+
+# OS files
+.DS_Store

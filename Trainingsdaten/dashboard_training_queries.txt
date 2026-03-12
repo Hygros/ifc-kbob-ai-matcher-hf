@@ -8,3 +8,5 @@ IfcWall RETAININGWALL Widerlagerwand Nord Beton NPK G 2500*500
 IfcWall RETAININGWALL Widerlagerwand Nord Beton NPK G über Pfahlkopfriegel
 IfcWall RETAININGWALL Widerlagerwand Süd Beton NPK G Süd
 IfcWall RETAININGWALL Widerlagerwand Süd Beton NPK G 2500*500
+IfcCovering Abdichtung Flüssigkunststoff
+IfcWall RETAININGWALL Rühlwand

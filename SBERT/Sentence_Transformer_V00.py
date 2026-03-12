@@ -21,7 +21,7 @@ except ImportError:
 
 
 # --- Configuration ---
-DATABASE_PATH = r"C:\Users\wpx619\.AAA_Python_MTH\Ökobilanzdaten.sqlite3"
+DATABASE_PATH = os.environ.get("KBOB_DATABASE_PATH", os.path.join(os.path.dirname(__file__), "..", "Oekobilanzdaten.sqlite3"))
 TABLE_NAME = "Oekobilanzdaten"
 COLUMN_MATERIAL = "Material"
 MODEL_NAME = "BAAI/bge-m3"  # Change model name here

@@ -1,7 +1,10 @@
 import ifcopenshell
+import sys
+import os
 
-# IFC-Datei laden (Pfad ggf. anpassen)
-ifc_file = ifcopenshell.open(r"C:\Users\wpx619\OneDrive - FHNW\Masterthesis\IFC-Modelle\Tekla\Bohrpfahl-Bewehrt-Beziehung.ifc")
+# IFC-Datei laden (Pfad als CLI-Argument oder Beispielpfad)
+_default_ifc = os.path.join(os.path.dirname(__file__), "..", "IFC-Modelle", "Tekla", "Bohrpfahl-Bewehrt-Beziehung.ifc")
+ifc_file = ifcopenshell.open(sys.argv[1] if len(sys.argv) > 1 else _default_ifc)
 
 def get_parent_assembly(element):
     """Geht die Aggregationshierarchie nach oben (IfcRelAggregates), bis IfcElementAssembly gefunden wird."""
