@@ -7,7 +7,7 @@ from sentence_transformers import SentenceTransformer, SimilarityFunction
 from huggingface_hub import login
 
 # --- Configuration ---
-DATABASE_PATH = os.environ.get("KBOB_DATABASE_PATH", os.path.join(os.path.dirname(__file__), "..", "Oekobilanzdaten.sqlite3"))
+DATABASE_PATH = os.environ.get("KBOB_DATABASE_PATH", os.path.join(os.path.dirname(__file__), "..", "Ökobilanzdaten.sqlite3"))
 TABLE_NAME = "Oekobilanzdaten"
 COLUMN_MATERIAL = "Material"
 MODEL_NAME = "google/embeddinggemma-300m"  # Change model name here

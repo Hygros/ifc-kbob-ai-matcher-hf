@@ -63,8 +63,12 @@ def render_viewer_bridge(selected_guid: str | None, selected_guids: list[str] | 
 <script>
 (() => {{
     const selected = {payload};
-    const VIEWER_ORIGIN = window.location.origin || 'http://127.0.0.1:3000';
     const parentWindow = window.parent;
+    const _viewerFrame = parentWindow.document.querySelector('iframe.viewer-iframe');
+    let VIEWER_ORIGIN = 'http://localhost:3000';
+    if (_viewerFrame && _viewerFrame.src) {{
+        try {{ VIEWER_ORIGIN = new URL(_viewerFrame.src).origin; }} catch(e) {{}}
+    }}
     const getViewerFrame = () => parentWindow.document.querySelector('iframe.viewer-iframe');
     const highlightGuid = (guid, shouldScroll = false) => {{
         const labels = parentWindow.document.querySelectorAll('.ai-map-group-label');
@@ -88,7 +92,7 @@ def render_viewer_bridge(selected_guid: str | None, selected_guids: list[str] | 
 
         if (shouldScroll && matchedLabel) {{
             try {{
-                matchedLabel.scrollIntoView({{ behavior: 'smooth', block: 'center', inline: 'nearest' }});
+                matchedLabel.scrollIntoView({{ behavior: 'instant', block: 'center', inline: 'nearest' }});
             }} catch (err) {{
                 matchedLabel.scrollIntoView();
             }}

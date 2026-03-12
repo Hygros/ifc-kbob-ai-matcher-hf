@@ -6,7 +6,7 @@ import os
 from sentence_transformers import CrossEncoder
 
 # --- Konfiguration ---
-DB_PATH = r"C:\Users\wpx619\AAA_Python_MTH\Ökobilanzdaten.sqlite3"
+DB_PATH = os.path.join(os.path.dirname(os.path.dirname(__file__)), "Ökobilanzdaten.sqlite3")
 MATERIALS_TABLE = "Oekobilanzdaten"
 MATERIAL_COL = "Material"
 MODEL_NAME = "cross-encoder/nli-deberta-v3-base"  # change model here only

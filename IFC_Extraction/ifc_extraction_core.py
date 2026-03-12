@@ -179,7 +179,34 @@ def _build_no_aggregates_elements(elements):
             if guid and not (hasattr(s, "is_a") and s.is_a("IfcReinforcingBar")):
                 has_rebar_map[guid] = rebar_present
 
-    return list(selected.values()), has_rebar_map
+    # --- Build aggregate_child_guids_map ---
+    # For each selected element, collect GUIDs of all aggregate descendants
+    # that are NOT themselves selected.  These descendants have geometry in
+    # the viewer but no own JSONL entry – the dashboard needs them so that
+    # clicking such a child in the viewer still highlights the parent row.
+    aggregate_child_guids_map: dict[str, list[str]] = {}
+    for eid, elem in selected.items():
+        descendant_guids: list[str] = []
+        queue = list(_get_aggregate_children(elem))
+        visited = {eid}
+        while queue:
+            child = queue.pop()
+            child_eid = _obj_id(child)
+            if child_eid in visited:
+                continue
+            visited.add(child_eid)
+            if child_eid in selected:
+                continue
+            child_guid = getattr(child, "GlobalId", None)
+            if child_guid:
+                descendant_guids.append(child_guid)
+            queue.extend(_get_aggregate_children(child))
+        if descendant_guids:
+            elem_guid = getattr(elem, "GlobalId", None)
+            if elem_guid:
+                aggregate_child_guids_map[elem_guid] = descendant_guids
+
+    return list(selected.values()), has_rebar_map, aggregate_child_guids_map
 
 
 def is_exportable_ifc_element(element):
@@ -245,14 +272,20 @@ def _should_compute_diameter(ifc_entity):
     return ifc_entity in DIAMETER_CANDIDATE_ENTITIES
 
 
-def build_export_dicts(model, elements, property_fields, units, has_rebar_map=None):
+def build_export_dicts(model, elements, property_fields, units, has_rebar_map=None, aggregate_child_guids_map=None):
     """Build list of dicts for JSONL export.
 
     *has_rebar_map* (optional) maps element-GlobalId to ``True`` when the
     element has modeled ``IfcReinforcingBar`` siblings in the same aggregate.
+
+    *aggregate_child_guids_map* (optional) maps element-GlobalId to a list of
+    descendant GlobalIds whose geometry is visible in the viewer but that have
+    no own JSONL row (absorbed by the parent during aggregation flattening).
     """
     if has_rebar_map is None:
         has_rebar_map = {}
+    if aggregate_child_guids_map is None:
+        aggregate_child_guids_map = {}
     export_dicts = []
     for element in elements:
         property_sets = ifcopenshell.util.element.get_psets(element)
@@ -308,6 +341,10 @@ def build_export_dicts(model, elements, property_fields, units, has_rebar_map=No
         if guid and guid in has_rebar_map:
             base_dict["HasModeledRebar"] = has_rebar_map[guid]
 
+        # Annotate aggregate child GUIDs for viewer selection
+        if guid and guid in aggregate_child_guids_map:
+            base_dict["AggregateChildGUIDs"] = aggregate_child_guids_map[guid]
+
         if materials:
             layer_thicknesses = [_to_float(m.get("LayerThickness")) for m in materials]
             can_split_by_thickness = all(t is not None and t > 0 for t in layer_thicknesses)
@@ -345,5 +382,5 @@ def extract_export_dicts_from_ifc_file(ifc_file_path, property_fields=None):
     units = get_ifc_units(model)
     fields = property_fields or DEFAULT_PROPERTY_FIELDS
     elements = [element for element in model.by_type("IfcElement") if is_exportable_ifc_element(element)]
-    elements_no_aggregates, has_rebar_map = _build_no_aggregates_elements(elements)
-    return build_export_dicts(model, elements_no_aggregates, fields, units, has_rebar_map=has_rebar_map)
+    elements_no_aggregates, has_rebar_map, aggregate_child_guids_map = _build_no_aggregates_elements(elements)
+    return build_export_dicts(model, elements_no_aggregates, fields, units, has_rebar_map=has_rebar_map, aggregate_child_guids_map=aggregate_child_guids_map)

@@ -279,7 +279,7 @@ def render_tab_ai_mapping(df: pd.DataFrame | None) -> None:
 
     with left_col:
         active_guid = st.session_state.get("viewer_selected_guid") if isinstance(st.session_state.get("viewer_selected_guid"), str) else None
-        base_cols = ["IfcEntity", "PredefinedType", "Name", "GUID", "MaterialLayerIndex", "Description", "Material", "Durchmesser", "top_k_matches"]
+        base_cols = ["IfcEntity", "PredefinedType", "Name", "GUID", "MaterialLayerIndex", "Description", "Material", "Durchmesser", "top_k_matches", "AggregateChildGUIDs"]
         if df is not None and hasattr(df, "columns"):
             for col in base_cols:
                 if col not in df.columns:
@@ -373,9 +373,11 @@ def render_tab_ai_mapping(df: pd.DataFrame | None) -> None:
             element_label = " | ".join(label_parts)
             if len(guids) > 1:
                 element_label = f"{element_label} <span style='color: #999;'>({len(guids)} Elemente)</span>"
-            is_active = bool(active_guid) and active_guid in guids
+            aggregate_child_guids = group.get("aggregate_child_guids", [])
+            all_viewer_guids = guids + [g for g in aggregate_child_guids if isinstance(g, str) and g not in guids]
+            is_active = bool(active_guid) and active_guid in all_viewer_guids
             active_style = "background-color: #fff3cd; padding: 0.15rem 0.35rem; border-radius: 4px;" if is_active else ""
-            guid_attr = ",".join(str(guid).replace("'", "") for guid in guids)
+            guid_attr = ",".join(str(guid).replace("'", "") for guid in all_viewer_guids)
             st.markdown(
                 f"<div class='ai-map-group-label' data-guids='{guid_attr}' style='font-size: 1.1em; font-weight: bold; margin-bottom: 0.2em; text-align: left; width: 100%; {active_style}'>{element_label}</div>",
                 unsafe_allow_html=True,
@@ -437,7 +439,7 @@ def render_tab_ai_mapping(df: pd.DataFrame | None) -> None:
                 index=(options.index(default_label) if default_label in options else 0),
                 key=f"sel_group_{data_version}_{group_index}_{primary_guid}",
                 on_change=set_active_guid,
-                args=(primary_guid, guids),
+                args=(primary_guid, all_viewer_guids),
                 label_visibility="collapsed",
             )
 

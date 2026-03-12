@@ -262,6 +262,10 @@ def build_ai_mapping_groups(base_df: pd.DataFrame) -> list[dict]:
                 }
             groups[signature]["guids"].append(guid)
             groups[signature]["guid_layer_map"][guid] = layer_idx
+            # Collect aggregate child GUIDs for viewer selection
+            child_guids = row_dict.get("AggregateChildGUIDs")
+            if isinstance(child_guids, list):
+                groups[signature].setdefault("aggregate_child_guids", []).extend(child_guids)
         else:
             signature = tuple(str(row_dict.get(field) or "").strip() for field in fields) + (
                 json.dumps(normalized_matches, ensure_ascii=False, sort_keys=True),
@@ -275,6 +279,10 @@ def build_ai_mapping_groups(base_df: pd.DataFrame) -> list[dict]:
                 }
             groups[signature]["guids"].append(guid)
             groups[signature]["guid_layer_map"][guid] = layer_idx
+            # Collect aggregate child GUIDs for viewer selection
+            child_guids = row_dict.get("AggregateChildGUIDs")
+            if isinstance(child_guids, list):
+                groups[signature].setdefault("aggregate_child_guids", []).extend(child_guids)
 
     grouped_rows = list(groups.values())
     grouped_rows.sort(
