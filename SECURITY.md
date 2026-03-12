@@ -15,6 +15,6 @@ If you discover a security vulnerability, please report it responsibly:
    - A description of the vulnerability
    - Steps to reproduce
    - Potential impact
-3. You will receive an acknowledgment within 48 hours.
+3. You will receive an acknowledgment as soon as possible.
 
-We appreciate responsible disclosure and will credit reporters (unless anonymity is preferred).
+I appreciate responsible disclosure and will credit reporters (unless anonymity is preferred).

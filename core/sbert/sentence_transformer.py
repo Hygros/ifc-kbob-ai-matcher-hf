@@ -21,14 +21,14 @@ except ImportError:
 
 
 # --- Configuration ---
+_BASE_DIR = Path(__file__).resolve().parent
+_PROJECT_ROOT = _BASE_DIR.parent.parent
+SBERT_MODELS_DIR = _PROJECT_ROOT / "models"
+
 DATABASE_PATH = os.environ.get("KBOB_DATABASE_PATH", str(_PROJECT_ROOT / "Ökobilanzdaten.sqlite3"))
 TABLE_NAME = "Oekobilanzdaten"
 COLUMN_MATERIAL = "Material"
 MODEL_NAME = "BAAI/bge-m3"  # Change model name here
-
-_BASE_DIR = Path(__file__).resolve().parent
-_PROJECT_ROOT = _BASE_DIR.parent
-SBERT_MODELS_DIR = _PROJECT_ROOT / "models"
 
 TOP_K_RESULTS = 30
 SIMILARITY_FUNCTION = SimilarityFunction.COSINE  # Alternatives: DOT_PRODUCT, EUCLIDEAN, MANHATTAN
