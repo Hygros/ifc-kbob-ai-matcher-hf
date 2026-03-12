@@ -82,15 +82,15 @@ SBERT/old/
 models/
 
 # Evaluation artifacts (generated outputs, logs)
-Evaluation/azure
-Evaluation/exports/azure_logs
 Evaluation/exports/model_evaluation/
 Training/outputs/
 Training/artifacts/
 
 # Large / generated export files
-*.sqlite3
 *.log
 
 # OS files
 .DS_Store
+
+# Cache
+.cache_material_index
