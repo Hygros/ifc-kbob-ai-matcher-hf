@@ -100,7 +100,6 @@ def render_tab_uploads() -> None:
     upload_key = get_upload_key(upload)
     active_model = st.session_state.get("selected_sbert_model", DEFAULT_SBERT_MODEL)
     current_processing_key = (upload_key, active_model) if upload_key is not None else None
-    last_processing_key = st.session_state.get("last_processing_key")
 
     dashboard_data_dir = os.path.join(os.path.dirname(os.path.dirname(__file__)), "data")
     try:

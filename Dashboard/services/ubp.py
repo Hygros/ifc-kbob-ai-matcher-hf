@@ -12,7 +12,7 @@ APP_ROOT = os.path.dirname(DASHBOARD_DIR)
 if APP_ROOT not in sys.path:
     sys.path.append(APP_ROOT)
 
-from core.calculate_ubp21_per_element import calculate_ubp_for_jsonl
+from core.calculate_ubp21_per_element import calculate_ubp_for_jsonl  # noqa: E402
 
 
 def _normalize_layer_index_col(series: pd.Series) -> pd.Series:

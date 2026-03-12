@@ -5,7 +5,6 @@ from .ifc_material_extract_util import extract_materials
 import sys
 from tkinter import filedialog
 import tkinter as tk
-import ifcopenshell.util.element
 
 
 NO_AGGREGATES_ALLOWED_SUBENTITY_TYPES = {"IfcCovering", "IfcReinforcingBar"}

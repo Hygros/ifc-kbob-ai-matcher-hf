@@ -8,12 +8,11 @@ import pandas as pd
 import streamlit as st
 import streamlit.components.v1 as components
 
-from Dashboard.config import DEFAULT_REINFORCEMENT_RATIO, REINFORCEMENT_KBOB_MATERIAL
+from Dashboard.config import DEFAULT_REINFORCEMENT_RATIO
 from Dashboard.domain.mapping import (
     add_domain_defaults,
     add_reinforcement_info,
     build_ai_mapping_groups,
-    is_concrete_material,
 )
 from Dashboard.services.kbob_materials import load_all_kbob_materials
 from Dashboard.services.training_export import export_training_pairs, record_to_query
@@ -486,12 +485,10 @@ def render_tab_ai_mapping(df: pd.DataFrame | None) -> None:
                 first_status = group_rebar_rows.iloc[0].get("reinforcement_status", "none")
                 first_ratio_source = group_rebar_rows.iloc[0].get("reinforcement_ratio_source")
                 first_ratio = group_rebar_rows.iloc[0].get("reinforcement_ratio_kg_m3")
-                first_mass = group_rebar_rows.iloc[0].get("reinforcement_mass_kg")
             else:
                 first_status = "none"
                 first_ratio_source = None
                 first_ratio = None
-                first_mass = None
 
             # Check previously persisted reinforcement decision
             prev_rebar_key = _selection_key(primary_guid, layer_index)
@@ -500,9 +497,7 @@ def render_tab_ai_mapping(df: pd.DataFrame | None) -> None:
             if first_status == "explicit":
                 st.caption("✅ Bewehrung ist modelliert (IfcReinforcingBar vorhanden)")
             elif first_status == "assumed":
-                source_label = "IFC-Wert" if first_ratio_source == "ifc" else "Standardwert"
                 default_ratio = float(first_ratio) if first_ratio is not None and not pd.isna(first_ratio) else DEFAULT_REINFORCEMENT_RATIO.get(ifc_entity, DEFAULT_REINFORCEMENT_RATIO["_default"])
-                mass_display = f"{first_mass:.1f}" if first_mass is not None and not pd.isna(first_mass) else "?"
 
                 # Restore persisted state or default to True
                 prev_accepted = prev_rebar_data.get("accepted", True)
@@ -511,7 +506,7 @@ def render_tab_ai_mapping(df: pd.DataFrame | None) -> None:
                     default_ratio = prev_ratio
 
                 st.info(
-                    f"⚠️ Keine Bewehrung modelliert. Kontrolliere die Annahme des Bewehrungsgehalts:"
+                    "⚠️ Keine Bewehrung modelliert. Kontrolliere die Annahme des Bewehrungsgehalts:"
                 )
                 cb_col, ni_col = st.columns([1, 2])
                 with cb_col:

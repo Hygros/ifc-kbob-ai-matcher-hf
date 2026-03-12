@@ -16,11 +16,11 @@ APP_ROOT = Path(__file__).resolve().parents[1]
 if str(APP_ROOT) not in sys.path:
     sys.path.append(str(APP_ROOT))
 
-from Dashboard.services.bootstrap import initialize_app_runtime
-from Dashboard.ui.header import render_header_metrics
-from Dashboard.ui.tab_ai_mapping import render_tab_ai_mapping
-from Dashboard.ui.tab_charts import render_tab_charts
-from Dashboard.ui.tab_uploads import render_tab_uploads
+from Dashboard.services.bootstrap import initialize_app_runtime  # noqa: E402
+from Dashboard.ui.header import render_header_metrics  # noqa: E402
+from Dashboard.ui.tab_ai_mapping import render_tab_ai_mapping  # noqa: E402
+from Dashboard.ui.tab_charts import render_tab_charts  # noqa: E402
+from Dashboard.ui.tab_uploads import render_tab_uploads  # noqa: E402
 
 # ---------- App ----------
 st.set_page_config(page_title="IFC-basierte Ökobilanzierung", layout="wide")
