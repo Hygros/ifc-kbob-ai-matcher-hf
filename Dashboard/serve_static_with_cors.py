@@ -15,8 +15,10 @@ class CORSRequestHandler(http.server.SimpleHTTPRequestHandler):
 
     def end_headers(self):
         origin = self.headers.get("Origin", "")
-        if _ALLOW_ALL_ORIGINS or origin in _ALLOWED_ORIGINS:
-            self.send_header("Access-Control-Allow-Origin", origin or "*")
+        if _ALLOW_ALL_ORIGINS and origin:
+            self.send_header("Access-Control-Allow-Origin", origin)
+        elif origin in _ALLOWED_ORIGINS:
+            self.send_header("Access-Control-Allow-Origin", origin)
         super().end_headers()
 
 if __name__ == '__main__':

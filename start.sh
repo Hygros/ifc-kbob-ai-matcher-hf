@@ -7,8 +7,12 @@
 # ---------------------------------------------------------------------------
 set -e
 
-# Start nginx in the background
-nginx &
+# Start nginx and verify it launched successfully
+nginx
+if ! nginx -t 2>/dev/null; then
+    echo "ERROR: nginx failed to start" >&2
+    exit 1
+fi
 
 # _ST_LAUNCHED prevents the self-launch guard inside app_with_viewer.py
 # from spawning another Streamlit subprocess.

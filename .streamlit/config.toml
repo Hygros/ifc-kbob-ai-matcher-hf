@@ -3,6 +3,9 @@ headless = true
 address = "127.0.0.1"
 port = 8501
 enableCORS = false
+# XSRF protection is disabled because the app runs behind an nginx reverse
+# proxy on Hugging Face Spaces.  The proxy is the single entry-point and
+# already prevents external cross-site requests from reaching Streamlit.
 enableXsrfProtection = false
 
 [browser]
