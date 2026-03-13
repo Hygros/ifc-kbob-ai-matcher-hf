@@ -244,7 +244,7 @@ python -m pytest Evaluation/tests/ -v
 
 ## Lizenz
 
-[MIT-Lizenz](LICENSE).
+[MPL-Lizenz](LICENSE).
 
 Informationen zu Drittbibliotheken und Modell-Lizenzen: [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
 
