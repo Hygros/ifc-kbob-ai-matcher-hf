@@ -30,6 +30,14 @@ def ensure_ifclite_viewer(viewer_root: str, port: int = 3000) -> None:
         return
     if not os.path.isdir(viewer_root):
         return
+
+    # If a pre-built dist/ exists (e.g. Docker / HF Spaces), serve it as
+    # static files instead of starting a Vite dev server.
+    dist_dir = os.path.join(viewer_root, "dist")
+    if os.path.isdir(dist_dir):
+        ensure_static_server(dist_dir, port)
+        return
+
     npm_cmd = shutil.which("npm") or shutil.which("npm.cmd")
     pnpm_cmd = shutil.which("pnpm") or shutil.which("pnpm.cmd")
     if not npm_cmd and not pnpm_cmd:

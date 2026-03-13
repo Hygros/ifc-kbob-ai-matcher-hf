@@ -1,7 +1,17 @@
+import os
+
 import pandas as pd
 
 
 CHART_HEIGHT = 700
+
+# ---------------------------------------------------------------------------
+# Hugging Face Spaces detection
+# ---------------------------------------------------------------------------
+# HF Spaces sets SPACE_ID automatically; when present the app is behind an
+# nginx reverse proxy that exposes the viewer at /viewer/ and static IFC
+# files at /static-ifc/ instead of localhost ports.
+IS_HF_SPACE: bool = bool(os.environ.get("SPACE_ID"))
 
 
 # ---------------------------------------------------------------------------

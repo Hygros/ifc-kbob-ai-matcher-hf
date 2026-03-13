@@ -8,7 +8,7 @@ import pandas as pd
 import streamlit as st
 import streamlit.components.v1 as components
 
-from Dashboard.config import DEFAULT_REINFORCEMENT_RATIO
+from Dashboard.config import DEFAULT_REINFORCEMENT_RATIO, IS_HF_SPACE
 from Dashboard.domain.mapping import (
     add_domain_defaults,
     add_reinforcement_info,
@@ -169,9 +169,14 @@ def _render_viewer(ifc_filename: str | None, active_guid: str | None, active_gui
         ensure_static_server(static_dir, port=8080)
         file_stat = os.stat(ifc_path)
         cache_bust = f"{file_stat.st_mtime_ns}-{file_stat.st_size}"
-        file_url = f"http://127.0.0.1:8080/{quote(str(ifc_filename))}?v={cache_bust}"
-        viewer_query = urlencode({"file_url": file_url, "v": cache_bust})
-        viewer_url = f"http://localhost:3000/?{viewer_query}"
+        if IS_HF_SPACE:
+            file_url = f"/static-ifc/{quote(str(ifc_filename))}?v={cache_bust}"
+            viewer_query = urlencode({"file_url": file_url, "v": cache_bust})
+            viewer_url = f"/viewer/?{viewer_query}"
+        else:
+            file_url = f"http://127.0.0.1:8080/{quote(str(ifc_filename))}?v={cache_bust}"
+            viewer_query = urlencode({"file_url": file_url, "v": cache_bust})
+            viewer_url = f"http://localhost:3000/?{viewer_query}"
 
         st.markdown(
             f"<div class='viewer-sticky'><iframe class='viewer-iframe' src='{viewer_url}'></iframe></div>",

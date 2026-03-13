@@ -63,7 +63,8 @@ coverage.xml
 .pytest_cache/
 
 # Streamlit static and cache
-.streamlit/
+.streamlit/*
+!.streamlit/config.toml
 static/
 data/
 .cache_material_index/

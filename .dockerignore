@@ -1,0 +1,36 @@
+# Folders not needed for the HF Spaces deployment
+Training/
+Evaluation/
+IFC-Modelle/
+scripts/
+.git/
+.github/
+.devcontainer/
+
+# Build / cache artefacts
+__pycache__/
+*.pyc
+.venv/
+env/
+venv/
+node_modules/
+.cache/
+.cache_material_index/
+models/
+*.egg-info/
+dist/
+build/
+
+# IDE / OS
+.vscode/
+.DS_Store
+Thumbs.db
+
+# Docs not required at runtime
+*.md
+!README.md
+LICENSE
+SECURITY.md
+CONTRIBUTING.md
+THIRD_PARTY_NOTICES.md
+Matching.code-workspace
