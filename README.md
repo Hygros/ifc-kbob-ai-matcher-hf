@@ -2,9 +2,9 @@
 
 Automatisierte Zuordnung von IFC-Bauelementen zu Ökobilanzdaten (KBOB) mit Sentence-Transformer-basiertem Matching und Berechnung von Umweltindikatoren (UBP21, GWP, Primärenergie).
 
-## Dich interessiert den Code eher weniger und du möchtest das Tool einfach ausprobieren?
-Geh auf diese Seite: [https://hygroskopisch-ifc-kbob-ai-matcher.hf.space/]
-(Ein paar Funktionen des Viewers haben noch Fehler, das Mapping funktioniert.)
+## Du möchtest das Tool ausprobieren und der Code interessiert dich weniger?
+Dann gehe auf diese Seite: [https://hygroskopisch-ifc-kbob-ai-matcher.hf.space/]
+(Einige Funktionen des Viewers haben noch Fehler, das Mapping funktioniert jedoch.)
 
 
 ## Überblick
