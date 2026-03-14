@@ -287,34 +287,18 @@ def _render_viewer(ifc_filename: str | None, active_guid: str | None, active_gui
                     const column = viewer.closest('[data-testid="stColumn"]');
                     const target = column || viewer.closest('[data-testid="stElementContainer"]') || viewer.parentElement;
 
-                    const isEmbedded = (() => {
-                        try {
-                            return rootWindow.top !== rootWindow.self;
-                        } catch (err) {
-                            return true;
-                        }
-                    })();
-
-                    if (isEmbedded) {
-                        // Embedded Spaces wrapper: keep viewer in normal document flow.
-                        if (target) {
-                            target.style.position = 'static';
-                            target.style.top = '';
-                            target.style.alignSelf = '';
-                            target.style.zIndex = '';
-                        }
-                        viewer.style.position = 'static';
-                        viewer.style.top = 'auto';
-                        viewer.style.alignSelf = 'stretch';
-                        return;
-                    }
-
+                    // Reset parent inline styles from older sticky workarounds.
                     if (target) {
-                        target.style.position = 'sticky';
-                        target.style.top = '5rem';
-                        target.style.alignSelf = 'flex-start';
-                        target.style.zIndex = '1';
+                        target.style.position = '';
+                        target.style.top = '';
+                        target.style.alignSelf = '';
+                        target.style.zIndex = '';
                     }
+
+                    viewer.style.position = 'sticky';
+                    viewer.style.top = '5rem';
+                    viewer.style.alignSelf = 'flex-start';
+                    viewer.style.zIndex = '1';
                 };
 
                 applySticky();

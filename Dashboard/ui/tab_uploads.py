@@ -3,8 +3,15 @@ import os
 
 import pandas as pd
 import streamlit as st
+import streamlit.components.v1 as components
 
-from Dashboard.config import DEFAULT_SBERT_MODEL, SBERT_MODEL_OPTIONS, DEFAULT_CROSS_ENCODER_MODEL, CROSS_ENCODER_MODEL_OPTIONS
+from Dashboard.config import (
+    CROSS_ENCODER_MODEL_OPTIONS,
+    DEFAULT_CROSS_ENCODER_MODEL,
+    DEFAULT_SBERT_MODEL,
+    IS_HF_SPACE,
+    SBERT_MODEL_OPTIONS,
+)
 from Dashboard.domain.mapping import add_domain_defaults, add_reinforcement_info
 from Dashboard.services.ifc_pipeline import (
     get_upload_key,
@@ -37,7 +44,103 @@ def _clear_previous_mapping_selection(jsonl_path: str | None) -> None:
         pass
 
 
+def _render_embedded_viewer_tip() -> None:
+    if not IS_HF_SPACE:
+        return
+
+    components.html(
+        """
+        <script>
+        (() => {
+            const rootWindow = window.parent;
+            const bannerId = 'ifc-lite-embed-banner';
+
+            const ensureEmbeddedBanner = () => {
+                const existingBanner = rootWindow.document.getElementById(bannerId);
+
+                const isEmbedded = (() => {
+                    try {
+                        return rootWindow.top !== rootWindow.self;
+                    } catch (err) {
+                        return true;
+                    }
+                })();
+
+                const onHfSpaceDomain = /\.hf\.space$/i.test(rootWindow.location.hostname || '');
+
+                if (!isEmbedded || !onHfSpaceDomain) {
+                    if (existingBanner) {
+                        existingBanner.remove();
+                    }
+                    return;
+                }
+
+                if (existingBanner) {
+                    return;
+                }
+
+                const mountPoint =
+                    rootWindow.document.querySelector('[data-testid="block-container"]') ||
+                    rootWindow.document.querySelector('.block-container') ||
+                    rootWindow.document.body;
+
+                if (!mountPoint) {
+                    return;
+                }
+
+                const banner = rootWindow.document.createElement('div');
+                banner.id = bannerId;
+                banner.style.display = 'flex';
+                banner.style.flexWrap = 'wrap';
+                banner.style.alignItems = 'center';
+                banner.style.justifyContent = 'space-between';
+                banner.style.gap = '0.75rem';
+                banner.style.padding = '0.75rem 1rem';
+                banner.style.margin = '0 0 0.75rem 0';
+                banner.style.border = '1px solid #b6d7ff';
+                banner.style.borderRadius = '10px';
+                banner.style.background = '#eef6ff';
+                banner.style.color = '#0f2b4c';
+
+                const info = rootWindow.document.createElement('div');
+                info.textContent = 'Viewer-Tipp: Im eingebetteten Spaces-Modus kann das Mitscrollen eingeschraenkt sein. Oeffne fuer stabile Bedienung die direkte hf.space-App.';
+                info.style.fontSize = '0.92rem';
+                info.style.fontWeight = '500';
+
+                const link = rootWindow.document.createElement('a');
+                const directUrl = `${rootWindow.location.origin}${rootWindow.location.pathname}${rootWindow.location.search}${rootWindow.location.hash}`;
+                link.href = directUrl;
+                link.target = '_blank';
+                link.rel = 'noopener noreferrer';
+                link.textContent = 'Direkt in hf.space oeffnen';
+                link.style.display = 'inline-block';
+                link.style.padding = '0.35rem 0.65rem';
+                link.style.borderRadius = '8px';
+                link.style.border = '1px solid #8ab8ff';
+                link.style.background = '#ffffff';
+                link.style.color = '#124070';
+                link.style.fontWeight = '600';
+                link.style.textDecoration = 'none';
+
+                banner.appendChild(info);
+                banner.appendChild(link);
+                mountPoint.prepend(banner);
+            };
+
+            ensureEmbeddedBanner();
+            setTimeout(ensureEmbeddedBanner, 120);
+            setTimeout(ensureEmbeddedBanner, 450);
+        })();
+        </script>
+        """,
+        height=0,
+        width=0,
+    )
+
+
 def render_tab_uploads() -> None:
+    _render_embedded_viewer_tip()
+
     if "ai_mapping_data_version" not in st.session_state:
         st.session_state["ai_mapping_data_version"] = 0
 
