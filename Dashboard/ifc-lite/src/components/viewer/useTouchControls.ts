@@ -230,9 +230,11 @@ export function useTouchControls(params: UseTouchControlsParams): void {
       }
     };
 
-    canvas.addEventListener('touchstart', handleTouchStart);
-    canvas.addEventListener('touchmove', handleTouchMove);
-    canvas.addEventListener('touchend', handleTouchEnd);
+    // Touch handlers call preventDefault to keep gestures inside the 3D canvas.
+    const touchListenerOptions: AddEventListenerOptions = { passive: false };
+    canvas.addEventListener('touchstart', handleTouchStart, touchListenerOptions);
+    canvas.addEventListener('touchmove', handleTouchMove, touchListenerOptions);
+    canvas.addEventListener('touchend', handleTouchEnd, touchListenerOptions);
 
     return () => {
       canvas.removeEventListener('touchstart', handleTouchStart);

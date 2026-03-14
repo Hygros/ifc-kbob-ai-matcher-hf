@@ -185,8 +185,83 @@ def _render_viewer(ifc_filename: str | None, active_guid: str | None, active_gui
             """
             <script>
             (() => {
+                const rootWindow = window.parent;
+
+                const ensureEmbeddedBanner = () => {
+                    const bannerId = 'ifc-lite-embed-banner';
+                    const existingBanner = rootWindow.document.getElementById(bannerId);
+
+                    const isEmbedded = (() => {
+                        try {
+                            return rootWindow.top !== rootWindow.self;
+                        } catch (err) {
+                            return true;
+                        }
+                    })();
+
+                    const onHfSpaceDomain = /\.hf\.space$/i.test(rootWindow.location.hostname || '');
+
+                    if (!isEmbedded || !onHfSpaceDomain) {
+                        if (existingBanner) {
+                            existingBanner.remove();
+                        }
+                        return;
+                    }
+
+                    if (existingBanner) {
+                        return;
+                    }
+
+                    const mountPoint =
+                        rootWindow.document.querySelector('[data-testid="block-container"]') ||
+                        rootWindow.document.querySelector('.block-container') ||
+                        rootWindow.document.body;
+
+                    if (!mountPoint) {
+                        return;
+                    }
+
+                    const banner = rootWindow.document.createElement('div');
+                    banner.id = bannerId;
+                    banner.style.display = 'flex';
+                    banner.style.flexWrap = 'wrap';
+                    banner.style.alignItems = 'center';
+                    banner.style.justifyContent = 'space-between';
+                    banner.style.gap = '0.75rem';
+                    banner.style.padding = '0.75rem 1rem';
+                    banner.style.margin = '0 0 0.75rem 0';
+                    banner.style.border = '1px solid #b6d7ff';
+                    banner.style.borderRadius = '10px';
+                    banner.style.background = '#eef6ff';
+                    banner.style.color = '#0f2b4c';
+
+                    const info = rootWindow.document.createElement('div');
+                    info.textContent = 'Viewer-Tipp: Fuer bestes Scroll-Verhalten bitte direkt in der hf.space-App oeffnen.';
+                    info.style.fontSize = '0.92rem';
+                    info.style.fontWeight = '500';
+
+                    const link = rootWindow.document.createElement('a');
+                    const directUrl = `${rootWindow.location.origin}${rootWindow.location.pathname}${rootWindow.location.search}${rootWindow.location.hash}`;
+                    link.href = directUrl;
+                    link.target = '_blank';
+                    link.rel = 'noopener noreferrer';
+                    link.textContent = 'Direkt in hf.space oeffnen';
+                    link.style.display = 'inline-block';
+                    link.style.padding = '0.35rem 0.65rem';
+                    link.style.borderRadius = '8px';
+                    link.style.border = '1px solid #8ab8ff';
+                    link.style.background = '#ffffff';
+                    link.style.color = '#124070';
+                    link.style.fontWeight = '600';
+                    link.style.textDecoration = 'none';
+
+                    banner.appendChild(info);
+                    banner.appendChild(link);
+                    mountPoint.prepend(banner);
+                };
+
                 const applySticky = () => {
-                    const viewer = window.parent.document.querySelector('.viewer-sticky');
+                    const viewer = rootWindow.document.querySelector('.viewer-sticky');
                     if (!viewer) return;
                     const column = viewer.closest('[data-testid="stColumn"]');
                     const target = column || viewer.closest('[data-testid="stElementContainer"]') || viewer.parentElement;
@@ -199,8 +274,10 @@ def _render_viewer(ifc_filename: str | None, active_guid: str | None, active_gui
                 };
 
                 applySticky();
+                ensureEmbeddedBanner();
                 setTimeout(applySticky, 250);
                 setTimeout(applySticky, 1000);
+                setTimeout(ensureEmbeddedBanner, 250);
             })();
             </script>
             """,
