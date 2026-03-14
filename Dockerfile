@@ -49,7 +49,7 @@ COPY start.sh .
 RUN chmod +x start.sh
 
 # Writable directories for runtime data
-RUN mkdir -p /app/Dashboard/static /app/Dashboard/data \
+RUN mkdir -p /app/Dashboard/static /app/Dashboard/data /app/models \
     && chown -R user:user /app /var/log/nginx /var/lib/nginx /run
 
 EXPOSE 7860

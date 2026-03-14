@@ -40,7 +40,7 @@ REINFORCEMENT_KBOB_MATERIAL: str = "Armierungsstahl"
 REINFORCEMENT_STEEL_DENSITY_FALLBACK: float = 7850.0
 
 
-SBERT_MODEL_OPTIONS = [
+_ALL_SBERT_MODEL_OPTIONS = [
     "google/embeddinggemma-300m",
     "BAAI/bge-m3",
     "BAAI/bge-m3-stage2-real-queries/epochs/epoch-01",
@@ -56,7 +56,26 @@ SBERT_MODEL_OPTIONS = [
     "sentence-transformers/distiluse-base-multilingual-cased-v2",
 ]
 
-DEFAULT_SBERT_MODEL = "BAAI/bge-m3-finetuned-dashboard/epochs/epoch-03"
+# Models that are publicly available on the Hugging Face Hub and can be
+# downloaded at runtime without any local model files.
+_HF_PUBLIC_SBERT_MODELS = [
+    "google/embeddinggemma-300m",
+    "BAAI/bge-m3",
+    "intfloat/multilingual-e5-large",
+    "intfloat/multilingual-e5-base",
+    "sentence-transformers/LaBSE",
+    "sentence-transformers/paraphrase-multilingual-mpnet-base-v2",
+    "sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2",
+    "sentence-transformers/distiluse-base-multilingual-cased-v2",
+]
+
+# On Hugging Face Spaces only public models are available (no local fine-tunes).
+SBERT_MODEL_OPTIONS = _HF_PUBLIC_SBERT_MODELS if IS_HF_SPACE else _ALL_SBERT_MODEL_OPTIONS
+
+DEFAULT_SBERT_MODEL = (
+    "BAAI/bge-m3" if IS_HF_SPACE
+    else "BAAI/bge-m3-finetuned-dashboard/epochs/epoch-03"
+)
 
 # --- Cross-Encoder (Re-Ranking) ---
 DEFAULT_CROSS_ENCODER_MODEL = "jinaai/jina-reranker-v2-base-multilingual"
