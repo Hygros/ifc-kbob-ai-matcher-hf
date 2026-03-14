@@ -105,8 +105,37 @@ def save_ifc_for_viewer(uploaded_file) -> str | None:
     return safe_filename
 
 
+def _resolve_python_executable() -> str:
+    candidates = []
+
+    if sys.executable:
+        candidates.append(sys.executable)
+
+    venv_dir = os.environ.get("VIRTUAL_ENV")
+    if venv_dir:
+        candidates.extend(
+            [
+                os.path.join(venv_dir, "bin", "python"),
+                os.path.join(venv_dir, "Scripts", "python.exe"),
+            ]
+        )
+
+    candidates.extend(
+        [
+            os.path.join(APP_ROOT, ".venv", "bin", "python"),
+            os.path.join(APP_ROOT, ".venv", "Scripts", "python.exe"),
+        ]
+    )
+
+    for candidate in candidates:
+        if candidate and os.path.exists(candidate):
+            return candidate
+
+    return shutil.which("python3") or shutil.which("python") or "python"
+
+
 def parse_ifc(uploaded_file, model_name: str, cross_encoder_model_name: str | None = None):
-    python_exe = os.path.join(APP_ROOT, ".venv", "Scripts", "python.exe")
+    python_exe = _resolve_python_executable()
     if hasattr(uploaded_file, "seek"):
         uploaded_file.seek(0)
 
