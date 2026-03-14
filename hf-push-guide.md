@@ -15,17 +15,12 @@ git remote -v
 git status --short
 git branch --show-current
 
-3. Nicht benoetigte Ordner entfernen (falls noch vorhanden)
-
-git rm -r Evaluation Training IFC-Modelle
-git commit -m "remove Evaluation Training IFC-Modelle"
-
-4. Historie bereinigen (wenn HF alte Dateien blockiert)
+3. Historie bereinigen (wenn HF alte Dateien blockiert)
 
 git filter-repo --force --refs main --invert-paths --path Evaluation --path Training --path IFC-Modelle --path .cache_material_index --path Matching-MTH-clean
 git filter-repo --force --refs main --invert-paths --path-glob '*.png' --path-glob '*.ico' --path-glob '*.icns'
 
-5. Immer alles committen und auf Hugging Face Space pushen
+4. Immer alles committen und auf Hugging Face Space pushen
 
 git add -A
 git commit -m "update: <kurze beschreibung>"
@@ -35,19 +30,19 @@ Falls der Remote-Branch absichtlich ersetzt werden soll:
 
 git push --force hf-space main:main
 
-6. GitHub origin angleichen
+5. GitHub origin angleichen
 
 git fetch origin main
 git push --force-with-lease origin main:main
 
-7. Build-Logs pruefen
+6. Build-Logs pruefen
 
 https://huggingface.co/spaces/Hygroskopisch/ifc-kbob-ai-matcher?logs=build
 
 Hinweis:
 Wenn HF "binary files" meldet, die gemeldeten Pfade mit git filter-repo aus der Historie entfernen oder diese Dateitypen sauber ueber Xet/LFS verwalten.
 
-8. Headless Betrieb in HF Space (ohne Tkinter)
+7. Headless Betrieb in HF Space (ohne Tkinter)
 
 Die bisherigen Dateidialoge wurden entfernt. In HF Space und Streamlit gibt es keine GUI-Fenster.
 Diese Skripte erwarten jetzt immer einen Pfad als CLI-Argument:

@@ -78,19 +78,6 @@ pnpm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 
-# IFC/Export/Resultate
-IFC-Modelle/
-
-# Legacy / experimental
-Dashboard/old/
-SBERT/old/
-
-# SBERT-Models
-models/
-
-# Evaluation and Training
-Evaluation/
-Training/
 
 # Large / generated export files
 *.log
@@ -100,6 +87,3 @@ Training/
 
 # Cache
 .cache_material_index
-
-# old ideas
-Synonyme/
