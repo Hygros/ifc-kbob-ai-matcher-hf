@@ -103,7 +103,7 @@ def _render_embedded_viewer_tip() -> None:
                 banner.style.color = '#0f2b4c';
 
                 const info = rootWindow.document.createElement('div');
-                info.textContent = 'Viewer-Tipp: Im eingebetteten Spaces-Modus kann das Mitscrollen eingeschraenkt sein. Oeffne fuer stabile Bedienung die direkte hf.space-App.';
+                info.textContent = 'Viewer-Tipp: Im eingebetteten Spaces-Modus kann das Mitscrollen des Viewers eingeschränkt sein. Öffne für stabile Bedienung die direkte hf.space-App.';
                 info.style.fontSize = '0.92rem';
                 info.style.fontWeight = '500';
 
