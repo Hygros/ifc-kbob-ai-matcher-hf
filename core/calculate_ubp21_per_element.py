@@ -2,8 +2,6 @@ import sqlite3
 import json
 import sys
 import os
-import tkinter as tk
-from tkinter import filedialog
 
 # --- Konfiguration ---
 DATABASE_PATH = os.environ.get("KBOB_DATABASE_PATH", os.path.join(os.path.dirname(os.path.dirname(__file__)), "Ökobilanzdaten.sqlite3"))
@@ -368,16 +366,17 @@ def calculate_ubp_for_jsonl(jsonl_path, export_dir=None, database_path=DATABASE_
 
 
 def main():
-    # GUI-Dialog zur Auswahl der JSONL-Datei
-    root = tk.Tk()
-    root.withdraw()
-    jsonl_path = filedialog.askopenfilename(title="Wähle IFC-Export JSONL", filetypes=[("JSONL files", "*.jsonl")])
-    root.destroy()
-    if not jsonl_path:
-        print("Keine Datei ausgewählt. Beende.")
+    if len(sys.argv) < 2:
+        print("Usage: python core/calculate_ubp21_per_element.py <path_to_jsonl> [export_dir]")
         sys.exit(1)
 
-    export_db_path, _ = calculate_ubp_for_jsonl(jsonl_path)
+    jsonl_path = sys.argv[1]
+    if not os.path.isfile(jsonl_path):
+        print(f"JSONL file not found: {jsonl_path}")
+        sys.exit(1)
+
+    export_dir = sys.argv[2] if len(sys.argv) > 2 else None
+    export_db_path, _ = calculate_ubp_for_jsonl(jsonl_path, export_dir=export_dir)
     print(f"Export abgeschlossen: {export_db_path}")
 
 if __name__ == "__main__":

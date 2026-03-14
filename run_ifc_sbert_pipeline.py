@@ -1,16 +1,6 @@
 import os
 import sys
-import tkinter as tk
-from tkinter import filedialog
 import subprocess
-
-# Schritt 1: IFC-Datei auswählen
-def choose_ifc_file():
-    root = tk.Tk()
-    root.withdraw()
-    path = filedialog.askopenfilename(title="Select IFC file", filetypes=[("IFC files","*.ifc")])
-    root.destroy()
-    return path
 
 # Schritt 2: IFC-Export als Subprozess aufrufen
 def run_ifc_export(ifc_path):
@@ -35,15 +25,16 @@ def get_jsonl_path_from_ifc(ifc_path):
 
 
 def main():
-    if len(sys.argv) > 1:
-        ifc_path = sys.argv[1]
-        print(f"IFC file from argument: {ifc_path}")
-    else:
-        ifc_path = choose_ifc_file()
-        if not ifc_path:
-            print("No IFC file selected. Exiting.")
-            sys.exit(1)
-    print(f"Selected IFC file: {ifc_path}")
+    if len(sys.argv) < 2:
+        print("Usage: python run_ifc_sbert_pipeline.py <path_to_ifc>")
+        sys.exit(1)
+
+    ifc_path = sys.argv[1]
+    if not os.path.isfile(ifc_path):
+        print(f"IFC file not found: {ifc_path}")
+        sys.exit(1)
+
+    print(f"IFC file from argument: {ifc_path}")
     run_ifc_export(ifc_path)
     jsonl_path = get_jsonl_path_from_ifc(ifc_path)
     print(f"Verwende JSONL-Datei: {jsonl_path}")

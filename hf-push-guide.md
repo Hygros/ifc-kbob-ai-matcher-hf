@@ -46,3 +46,14 @@ https://huggingface.co/spaces/Hygroskopisch/ifc-kbob-ai-matcher?logs=build
 
 Hinweis:
 Wenn HF "binary files" meldet, die gemeldeten Pfade mit git filter-repo aus der Historie entfernen oder diese Dateitypen sauber ueber Xet/LFS verwalten.
+
+8. Headless Betrieb in HF Space (ohne Tkinter)
+
+Die bisherigen Dateidialoge wurden entfernt. In HF Space und Streamlit gibt es keine GUI-Fenster.
+Diese Skripte erwarten jetzt immer einen Pfad als CLI-Argument:
+
+python run_ifc_sbert_pipeline.py <path_to_ifc>
+python -m core.ifc_extraction.ifc_export_simple <path_to_ifc>
+python core/calculate_ubp21_per_element.py <path_to_jsonl> [export_dir]
+
+Wenn kein Argument angegeben ist oder der Pfad nicht existiert, brechen die Skripte mit Usage- bzw. File-not-found-Meldung ab.

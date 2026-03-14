@@ -3,20 +3,9 @@ import ifcopenshell
 import ifcopenshell.util.element
 from .ifc_material_extract_util import extract_materials
 import sys
-from tkinter import filedialog
-import tkinter as tk
 
 
 NO_AGGREGATES_ALLOWED_SUBENTITY_TYPES = {"IfcCovering", "IfcReinforcingBar"}
-
-
-# Schritt 1: IFC-Datei auswählen
-def choose_ifc_file():
-    root = tk.Tk()
-    root.withdraw()
-    path = filedialog.askopenfilename(title="Select IFC file", filetypes=[("IFC files","*.ifc")])
-    root.destroy()
-    return path
 
 
 def _entity_label(obj):
@@ -380,15 +369,16 @@ def build_ifc_tree_lines(model, include_aggregate_subentities=True):
 
 
 def main():
-    if len(sys.argv) > 1:
-        ifc_path = sys.argv[1]
-        print(f"IFC file from argument: {ifc_path}")
-    else:
-        ifc_path = choose_ifc_file()
-        if not ifc_path:
-            print("No IFC file selected. Exiting.")
-            sys.exit(1)
-    print(f"Selected IFC file: {ifc_path}")
+    if len(sys.argv) < 2:
+        print("Usage: python -m core.ifc_extraction.ifc_export_simple <path_to_ifc>")
+        sys.exit(1)
+
+    ifc_path = sys.argv[1]
+    if not os.path.isfile(ifc_path):
+        print(f"IFC file not found: {ifc_path}")
+        sys.exit(1)
+
+    print(f"IFC file from argument: {ifc_path}")
     model = ifcopenshell.open(ifc_path)
 
     tree_lines = build_ifc_tree_lines(model, include_aggregate_subentities=True)
