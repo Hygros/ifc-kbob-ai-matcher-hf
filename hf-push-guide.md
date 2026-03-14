@@ -1,0 +1,48 @@
+# HF Push Guide (kurz)
+
+Voraussetzung:
+- Du bist im Repo-Root.
+- Der Deploy-Branch ist main.
+- Regel: Immer alle lokalen Aenderungen pushen (keine Teil-Commits).
+
+1. Space-Remote setzen (einmalig)
+
+git remote add hf-space https://huggingface.co/spaces/Hygroskopisch/ifc-kbob-ai-matcher
+git remote -v
+
+2. Lokalen Stand pruefen
+
+git status --short
+git branch --show-current
+
+3. Nicht benoetigte Ordner entfernen (falls noch vorhanden)
+
+git rm -r Evaluation Training IFC-Modelle
+git commit -m "remove Evaluation Training IFC-Modelle"
+
+4. Historie bereinigen (wenn HF alte Dateien blockiert)
+
+git filter-repo --force --refs main --invert-paths --path Evaluation --path Training --path IFC-Modelle --path .cache_material_index --path Matching-MTH-clean
+git filter-repo --force --refs main --invert-paths --path-glob '*.png' --path-glob '*.ico' --path-glob '*.icns'
+
+5. Immer alles committen und auf Hugging Face Space pushen
+
+git add -A
+git commit -m "update: <kurze beschreibung>"
+git push hf-space main:main
+
+Falls der Remote-Branch absichtlich ersetzt werden soll:
+
+git push --force hf-space main:main
+
+6. GitHub origin angleichen
+
+git fetch origin main
+git push --force-with-lease origin main:main
+
+7. Build-Logs pruefen
+
+https://huggingface.co/spaces/Hygroskopisch/ifc-kbob-ai-matcher?logs=build
+
+Hinweis:
+Wenn HF "binary files" meldet, die gemeldeten Pfade mit git filter-repo aus der Historie entfernen oder diese Dateitypen sauber ueber Xet/LFS verwalten.

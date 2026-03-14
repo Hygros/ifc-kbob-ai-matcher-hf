@@ -1,1 +1,1 @@
-# core – shared modules used by Dashboard, Evaluation and Training
+# core - shared modules used by dashboard and pipeline services

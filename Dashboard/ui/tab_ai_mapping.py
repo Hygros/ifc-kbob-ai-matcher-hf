@@ -15,7 +15,6 @@ from Dashboard.domain.mapping import (
     build_ai_mapping_groups,
 )
 from Dashboard.services.kbob_materials import load_all_kbob_materials
-from Dashboard.services.training_export import export_training_pairs, record_to_query
 from Dashboard.services.ubp import run_ubp_calculation
 from Dashboard.services.viewer import ensure_static_server, render_viewer_bridge, set_active_guid
 
@@ -350,7 +349,6 @@ def render_tab_ai_mapping(df: pd.DataFrame | None) -> None:
         if kbob_load_error:
             st.warning(f"KBOB-Vollauswahl nicht verfügbar ({kbob_load_error}). Es werden nur Top-Treffer angezeigt.")
 
-        st.session_state["_manual_training_pairs"] = []
         updates = []
         for group_index, group in enumerate(grouped_base):
             row_data = group["row"]
@@ -468,14 +466,6 @@ def render_tab_ai_mapping(df: pd.DataFrame | None) -> None:
             )
 
             sel_material = None if sel_label == NO_SELECTION_LABEL else material_lookup.get(sel_label)
-
-            # Track manually changed selections for training export
-            if sel_material is not None and sel_material != default_material:
-                query_str = record_to_query(row_data)
-                if query_str:
-                    if "_manual_training_pairs" not in st.session_state:
-                        st.session_state["_manual_training_pairs"] = []
-                    st.session_state["_manual_training_pairs"].append((query_str, sel_material))
 
             # --- Reinforcement UI per group ---
             rebar_accepted = False
@@ -610,18 +600,6 @@ def render_tab_ai_mapping(df: pd.DataFrame | None) -> None:
                     if ubp_db_path:
                         st.session_state["ubp_db_path"] = ubp_db_path
                     st.success("Auswahl gespeichert und in JSONL übernommen")
-                    # --- Export training pairs for fine-tuning ---
-                    manual_pairs = st.session_state.get("_manual_training_pairs", [])
-                    if manual_pairs:
-                        try:
-                            training_dir = Path(__file__).resolve().parent.parent.parent / "Training" / "data"
-                            total, added = export_training_pairs(manual_pairs, training_dir)
-                            if added:
-                                st.info(f"Trainingsdaten: {added} neue Paare exportiert ({total} gesamt)")
-                            else:
-                                st.info(f"Trainingsdaten: keine neuen Paare ({total} gesamt)")
-                        except Exception as exc:
-                            st.warning(f"Trainingsexport fehlgeschlagen: {exc}")
             else:
                 st.error("Kein JSONL-Pfad gefunden. Auswahl konnte nicht gespeichert werden.")
 
