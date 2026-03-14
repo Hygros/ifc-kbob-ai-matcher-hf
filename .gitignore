@@ -79,8 +79,7 @@ yarn-debug.log*
 yarn-error.log*
 
 # IFC/Export/Resultate
-IFC-Modelle/Resultate_UBP_Berechnung/
-IFC-Modelle/AFRY/
+IFC-Modelle/
 
 # Legacy / experimental
 Dashboard/old/
@@ -89,10 +88,9 @@ SBERT/old/
 # SBERT-Models
 models/
 
-# Evaluation artifacts (generated outputs, logs)
-Evaluation/exports/model_evaluation/
-Training/outputs/
-Training/artifacts/
+# Evaluation and Training
+Evaluation/
+Training/
 
 # Large / generated export files
 *.log
