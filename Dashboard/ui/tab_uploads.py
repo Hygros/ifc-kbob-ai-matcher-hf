@@ -114,7 +114,7 @@ def _render_embedded_viewer_tip() -> None:
                 link.href = directUrl;
                 link.target = '_blank';
                 link.rel = 'noopener noreferrer';
-                link.textContent = 'Direkt in hf.space oeffnen';
+                link.textContent = 'open hf.space';
                 link.style.display = 'inline-block';
                 link.style.padding = '0.35rem 0.65rem';
                 link.style.borderRadius = '8px';
