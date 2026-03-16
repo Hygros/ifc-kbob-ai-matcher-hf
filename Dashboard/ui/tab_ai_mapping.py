@@ -216,7 +216,7 @@ def _render_embedded_viewer_tip() -> None:
                 banner.style.color = '#0f2b4c';
 
                 const info = rootWindow.document.createElement('div');
-                info.textContent = 'Be aware: your ifc-file gets saved and is visible as well as downladable for everyone! Viewer tip: In embedded Spaces mode, the viewer's synchronized scrolling may be limited. For stable operation, open the space directly via the hf.space app.';
+                info.textContent = "Be aware: your ifc-file gets saved and is visible as well as downloadable for everyone! Viewer tip: In embedded Spaces mode, the viewer's synchronized scrolling may be limited. For stable operation, open the space directly via the hf.space app.";
                 info.style.fontSize = '0.92rem';
                 info.style.fontWeight = '500';
 
