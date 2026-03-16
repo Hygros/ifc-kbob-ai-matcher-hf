@@ -49,7 +49,10 @@ export function createListDataProvider(ifcDataStore: IfcDataStore): ListDataProv
       if (ifcDataStore.properties) {
         return ifcDataStore.properties.getForEntity(expressId);
       }
-      return extractPropertiesOnDemand(ifcDataStore, expressId);
+      return extractPropertiesOnDemand(ifcDataStore, expressId).map((ps) => ({
+        ...ps,
+        globalId: ps.globalId ?? '',
+      }));
     },
     getQuantitySets(expressId: number) {
       if (ifcDataStore.quantities) {
