@@ -55,10 +55,10 @@ def _cleanup_expired(base_dirs: list[str], ttl: int) -> None:
             try:
                 age = now - _newest_mtime(sub)
                 if age > ttl:
-                    shutil.rmtree(sub, ignore_errors=True)
+                    shutil.rmtree(sub, ignore_errors=False)
                     logger.info("Cleaned up expired session dir: %s (age %.0fs)", sub, age)
-            except OSError:
-                continue
+            except OSError as exc:
+                logger.warning("Failed to remove session dir %s: %s", sub, exc)
 
 
 def _cleanup_loop(base_dirs: list[str]) -> None:

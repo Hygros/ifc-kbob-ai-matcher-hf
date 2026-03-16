@@ -12,9 +12,15 @@ from Dashboard.services.session_cleanup import start_cleanup_thread
 def _ensure_session_id() -> str:
     """Return or create a cryptographically strong per-session identifier.
 
-    The token is stored in ``st.session_state`` so that it survives
-    Streamlit re-runs but is unique per browser tab / connection.
-    It is used to derive session-specific file-system paths for
+    The token is stored in ``st.session_state`` which Streamlit scopes
+    to an individual WebSocket connection.  Each browser tab that opens
+    the app gets its own connection and therefore its own token.  Note
+    that if two tabs share a Streamlit session cookie they may share
+    state; this is a Streamlit framework behaviour and the session
+    directories already use random tokens, so file paths remain
+    unpredictable regardless.
+
+    The token is used to derive session-specific file-system paths for
     uploaded IFC and generated JSONL files so that different sessions
     cannot see each other's data.
     """

@@ -133,7 +133,7 @@ def save_ifc_for_viewer(uploaded_file) -> str | None:
     if not filename:
         return None
     safe_filename = to_safe_filename(filename)
-    unique_filename = f"{uuid.uuid4().hex[:12]}_{safe_filename}"
+    unique_filename = f"{uuid.uuid4().hex[:16]}_{safe_filename}"
     save_path = os.path.join(session_dir, unique_filename)
     with open(save_path, "wb") as f:
         f.write(uploaded_file.getbuffer())
