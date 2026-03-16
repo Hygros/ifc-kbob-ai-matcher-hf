@@ -1099,7 +1099,7 @@ export function AddQuantityDialog({ modelId, entityId, entityType, existingQtos 
                         <div className="flex flex-col">
                           <div className="flex items-center gap-2">
                             <span className="font-medium">{qty.name}</span>
-                            <Badge variant="secondary" className="h-4 px-1 text-[9px]">{qty.unit}</Badge>
+                            <Badge variant="secondary" className="h-4 px-1 text-[9px]">{getQuantityUnit(qty.type)}</Badge>
                           </div>
                           <span className="text-[10px] text-zinc-400">{qty.description}</span>
                         </div>

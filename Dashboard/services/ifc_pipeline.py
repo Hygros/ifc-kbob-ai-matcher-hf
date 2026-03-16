@@ -7,6 +7,7 @@ import sys
 import tempfile
 import time
 import unicodedata
+import uuid
 
 import pandas as pd
 import streamlit as st
@@ -64,6 +65,33 @@ def to_safe_filename(name: str) -> str:
     return f"{base}{ext}"
 
 
+def _get_session_id() -> str:
+    """Return the current Streamlit session's unique identifier.
+
+    If ``bootstrap.initialize_app_runtime()`` has already run, the token
+    is available in ``st.session_state["session_id"]``.  As a safety
+    fallback a new token is generated on the fly.
+    """
+    if "session_id" not in st.session_state:
+        import secrets
+        st.session_state["session_id"] = secrets.token_hex(16)
+    return st.session_state["session_id"]
+
+
+def _session_static_dir() -> str:
+    """Return the session-scoped directory for IFC files."""
+    d = os.path.join(DASHBOARD_DIR, "static", _get_session_id())
+    os.makedirs(d, exist_ok=True)
+    return d
+
+
+def _session_data_dir() -> str:
+    """Return the session-scoped directory for JSONL files."""
+    d = os.path.join(DASHBOARD_DIR, "data", _get_session_id())
+    os.makedirs(d, exist_ok=True)
+    return d
+
+
 def resolve_ifc_for_jsonl(static_dir: str, jsonl_name: str) -> str | None:
     base_name = os.path.splitext(jsonl_name)[0]
     ifc_name = base_name + ".ifc"
@@ -91,18 +119,27 @@ def resolve_ifc_for_jsonl(static_dir: str, jsonl_name: str) -> str | None:
 
 
 def save_ifc_for_viewer(uploaded_file) -> str | None:
+    """Save the uploaded IFC to the session-scoped static directory.
+
+    The file is stored with a UUID prefix so that its name cannot be
+    guessed or enumerated by other sessions.  Returns the path
+    *relative to the static root* (i.e. ``<session_id>/<uuid>_<safe>.ifc``)
+    so that the viewer URL is constructed correctly.
+    """
     if uploaded_file is None:
         return None
-    static_dir = os.path.abspath(os.path.join(DASHBOARD_DIR, "static"))
-    os.makedirs(static_dir, exist_ok=True)
+    session_dir = _session_static_dir()
     filename = getattr(uploaded_file, "name", None)
     if not filename:
         return None
     safe_filename = to_safe_filename(filename)
-    save_path = os.path.join(static_dir, safe_filename)
+    unique_filename = f"{uuid.uuid4().hex[:16]}_{safe_filename}"
+    save_path = os.path.join(session_dir, unique_filename)
     with open(save_path, "wb") as f:
         f.write(uploaded_file.getbuffer())
-    return safe_filename
+    # Return path relative to the global static root so the URL includes
+    # the session subdirectory.
+    return os.path.join(_get_session_id(), unique_filename)
 
 
 def _resolve_python_executable() -> str:
@@ -170,9 +207,7 @@ def parse_ifc(uploaded_file, model_name: str, cross_encoder_model_name: str | No
             time.sleep(poll_interval)
             waited += poll_interval
 
-        dashboard_data_dir = os.path.join(DASHBOARD_DIR, "data")
-        if not os.path.exists(dashboard_data_dir):
-            os.makedirs(dashboard_data_dir)
+        dashboard_data_dir = _session_data_dir()
 
         if hasattr(uploaded_file, "name"):
             ifc_base = os.path.splitext(os.path.basename(uploaded_file.name))[0]

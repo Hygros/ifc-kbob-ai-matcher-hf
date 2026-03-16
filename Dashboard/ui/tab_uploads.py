@@ -14,6 +14,8 @@ from Dashboard.config import (
 )
 from Dashboard.domain.mapping import add_domain_defaults, add_reinforcement_info
 from Dashboard.services.ifc_pipeline import (
+    _session_data_dir,
+    _session_static_dir,
     get_upload_key,
     load_data,
     preload_cross_encoder_resources,
@@ -103,7 +105,7 @@ def _render_embedded_viewer_tip() -> None:
                 banner.style.color = '#0f2b4c';
 
                 const info = rootWindow.document.createElement('div');
-                info.textContent = "Be aware: your ifc-file gets saved and is visible as well as downloadable for everyone! Viewer tip: In embedded Spaces mode, the viewer's synchronized scrolling may be limited. For stable operation, open the space directly via the hf.space app.";
+                info.textContent = "Privacy notice: Uploaded IFC files are stored temporarily in a session-scoped directory and automatically deleted after 2 hours. Other users cannot access your files. For additional protection, consider using a private HF Space. Viewer tip: In embedded Spaces mode, the viewer's synchronized scrolling may be limited. For stable operation, open the space directly via the hf.space app.";
                 info.style.fontSize = '0.92rem';
                 info.style.fontWeight = '500';
 
@@ -112,7 +114,7 @@ def _render_embedded_viewer_tip() -> None:
                 link.href = directUrl;
                 link.target = '_blank';
                 link.rel = 'noopener noreferrer';
-                link.textContent = 'Direkt in hf.space oeffnen';
+                link.textContent = 'open hf.space';
                 link.style.display = 'inline-block';
                 link.style.padding = '0.35rem 0.65rem';
                 link.style.borderRadius = '8px';
@@ -204,7 +206,7 @@ def render_tab_uploads() -> None:
     active_model = st.session_state.get("selected_sbert_model", DEFAULT_SBERT_MODEL)
     current_processing_key = (upload_key, active_model) if upload_key is not None else None
 
-    dashboard_data_dir = os.path.join(os.path.dirname(os.path.dirname(__file__)), "data")
+    dashboard_data_dir = _session_data_dir()
     try:
         jsonl_files = [f for f in os.listdir(dashboard_data_dir) if f.endswith(".jsonl")]
     except Exception:
@@ -226,10 +228,11 @@ def render_tab_uploads() -> None:
             st.session_state["ai_mapping_data_version"] = st.session_state.get("ai_mapping_data_version", 0) + 1
             st.session_state.pop("ai_mapping_last_rendered_token", None)
             st.session_state["jsonl_path"] = str(jsonl_path)
-            static_dir = os.path.abspath(os.path.join(os.path.dirname(os.path.dirname(__file__)), "static"))
+            static_dir = _session_static_dir()
             resolved_ifc = resolve_ifc_for_jsonl(static_dir, selected_jsonl)
             if resolved_ifc:
-                st.session_state["ifc_filename"] = resolved_ifc
+                session_id = st.session_state.get("session_id", "")
+                st.session_state["ifc_filename"] = os.path.join(session_id, resolved_ifc)
             if ubp_db_path:
                 st.session_state["ubp_db_path"] = ubp_db_path
             st.session_state["_success_message"] = f"JSONL geladen: {jsonl_path}"

@@ -16,8 +16,8 @@ RUN npm run build
 FROM python:3.11-slim
 
 # nginx for reverse-proxying Streamlit + viewer + static files on one port
-RUN apt-get update \
-    && apt-get install -y --no-install-recommends nginx \
+RUN DEBIAN_FRONTEND=noninteractive apt-get update \
+    && DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends nginx \
     && rm -rf /var/lib/apt/lists/*
 
 # HF Spaces convention: non-root user with uid 1000
