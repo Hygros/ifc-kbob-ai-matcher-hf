@@ -108,7 +108,12 @@ interface GPUDeviceLostInfo {
 type GPUTextureFormat = string;
 
 // Minimal interfaces for other GPU types (as placeholders)
-interface GPUQueue {}
+interface GPUQueue {
+  writeBuffer(buffer: GPUBuffer, bufferOffset: number, data: ArrayBuffer | SharedArrayBuffer | ArrayBufferView, dataOffset?: number, size?: number): void;
+  onSubmittedWorkDone(): Promise<void>;
+  submit(commandBuffers: Iterable<GPUCommandBuffer>): void;
+}
+interface GPUCommandBuffer {}
 interface GPUBuffer {}
 interface GPUTexture {}
 interface GPUSampler {}
