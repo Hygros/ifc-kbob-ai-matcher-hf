@@ -216,7 +216,7 @@ def _render_embedded_viewer_tip() -> None:
                 banner.style.color = '#0f2b4c';
 
                 const info = rootWindow.document.createElement('div');
-                info.textContent = "Be aware: your ifc-file gets saved and is visible as well as downloadable for everyone! Viewer tip: In embedded Spaces mode, the viewer's synchronized scrolling may be limited. For stable operation, open the space directly via the hf.space app.";
+                info.textContent = "Privacy notice: Uploaded IFC files are stored temporarily in a session-scoped directory and automatically deleted after 2 hours. Other users cannot access your files. For additional protection, consider using a private HF Space. Viewer tip: In embedded Spaces mode, the viewer's synchronized scrolling may be limited. For stable operation, open the space directly via the hf.space app.";
                 info.style.fontSize = '0.92rem';
                 info.style.fontWeight = '500';
 
@@ -263,11 +263,11 @@ def _render_viewer(ifc_filename: str | None, active_guid: str | None, active_gui
         file_stat = os.stat(ifc_path)
         cache_bust = f"{file_stat.st_mtime_ns}-{file_stat.st_size}"
         if IS_HF_SPACE:
-            file_url = f"/static-ifc/{quote(str(ifc_filename))}?v={cache_bust}"
+            file_url = f"/static-ifc/{quote(str(ifc_filename), safe='/')}?v={cache_bust}"
             viewer_query = urlencode({"file_url": file_url, "v": cache_bust})
             viewer_url = f"/viewer/?{viewer_query}"
         else:
-            file_url = f"http://127.0.0.1:8080/{quote(str(ifc_filename))}?v={cache_bust}"
+            file_url = f"http://127.0.0.1:8080/{quote(str(ifc_filename), safe='/')}?v={cache_bust}"
             viewer_query = urlencode({"file_url": file_url, "v": cache_bust})
             viewer_url = f"http://localhost:3000/?{viewer_query}"
 
