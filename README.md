@@ -7,5 +7,3 @@ Für weitere Details schau dir dieses Repo an.
 
 ## Du möchtest das Tool ausprobieren und der Code interessiert dich weniger?
 Dann gehe auf diese Seite: [https://hygroskopisch-ifc-kbob-ai-matcher.hf.space/]
-
-
