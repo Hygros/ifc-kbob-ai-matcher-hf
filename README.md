@@ -23,7 +23,7 @@ Das Projekt besteht aus drei Hauptbereichen und einer gemeinsamen Codebasis:
 | Bereich | Zweck |
 | --------- | ------- |
 | **Dashboard** | Streamlit-App: IFC-Upload, AI-Materialzuordnung, 3D-Viewer, Umweltindikator-Visualisierung |
-| **Evaluation** | Evaluation von Bi-Encoder- und Cross-Encoder-Modellen gegen erwartete Materialzuordnungen |
+| **Evaluation** | Evaluation von Bi-Encoder-Modellen gegen erwartete Materialzuordnungen |
 | **Training** | Fine-Tuning von Sentence-Transformer-Modellen (BAAI/bge-m3) mit eigenen Trainingsdaten |
 | **core** | Gemeinsam genutzte Module: IFC-Extraktion, SBERT-Matching, UBP-Berechnung, Synonyme |
 
@@ -32,7 +32,7 @@ Das Projekt besteht aus drei Hauptbereichen und einer gemeinsamen Codebasis:
 ```text
 IFC-Datei
   → core/ifc_extraction   (Elemente, Materialien, PropertySets → JSONL)
-  → core/sbert             (Bi-Encoder-Matching + Cross-Encoder-Reranking gegen KBOB-DB)
+  → core/sbert             (Bi-Encoder-Matching gegen KBOB-DB)
   → Dashboard              (Nutzer wählt Zuordnung, UBP-Berechnung, Charts)
 ```
 
@@ -50,9 +50,8 @@ Matching/
 │   │   ├── ifc_export_simple.py       #   Einfacher Hierarchie-/PropertySet-Export als Text
 │   │   └── ifc_reinforcement_relation.py
 │   ├── sbert/                         # Sentence-Transformer Matching-Engine
-│   │   ├── sentence_transformer.py    #   Bi-Encoder + Cross-Encoder Reranking gegen KBOB
+│   │   ├── sentence_transformer.py    #   Bi-Encoder-Matching gegen KBOB
 │   │   ├── batch_benchmark.py         #   Batch-Size-Benchmark für optimale Encoding-Performance
-│   │   └── cross_encoder.py           #   Standalone Cross-Encoder-Demo
 │   ├── synonyme/                      # Deutsche Synonym-Anreicherung
 │   │   ├── conceptnet.py              #   ConceptNet API
 │   │   ├── conceptnet_scraper.py      #   ConceptNet mit HTML-Fallback
@@ -108,7 +107,7 @@ Matching/
 │   └── outputs/                       #   Evaluationsergebnisse einzelner Modelle
 │
 ├── scripts/                           # Ad-hoc-Beispiele und Testskripte
-├── models/                            # Lokaler Modell-Cache (SBERT, Cross-Encoder)
+├── models/                            # Lokaler Modell-Cache (SBERT)
 ├── IFC-Modelle/                       # Test-IFC-Dateien und UBP-Berechnungsergebnisse
 ├── Ökobilanzdaten.sqlite3             # KBOB-Materialdatenbank (nicht im Repo)
 │
@@ -158,7 +157,7 @@ streamlit run Dashboard/app_with_viewer.py
 streamlit run Dashboard/app_with_viewer.py
 ```
 
-1. **Uploads-Tab:** IFC-Datei hochladen, SBERT-Modell und optional Cross-Encoder wählen, "Mapping berechnen" klicken.
+1. **Uploads-Tab:** IFC-Datei hochladen, SBERT-Modell wählen, "Mapping berechnen" klicken.
 2. **AI-Mapping-Tab:** Vom AI vorgeschlagene KBOB-Materialien prüfen und bestätigen/korrigieren. 3D-Viewer zeigt das gewählte Element. Bewehrungsannahmen konfigurieren.
 3. **Charts-Tab:** UBP, CO₂, Energie und weitere KPIs nach Element, Material oder IfcEntity visualisieren.
 
@@ -181,7 +180,7 @@ python -m core.ifc_extraction.ifc_batch_export_to_csv --ifc-folder <Ordner> --ou
 
 ## Evaluation
 
-Die Evaluation vergleicht bis zu 13 Bi-Encoder-Modelle (+ optionalen Cross-Encoder) gegen Ground-Truth-Zuordnungen.
+Die Evaluation vergleicht bis zu 13 Bi-Encoder-Modelle gegen Ground-Truth-Zuordnungen.
 
 ```bash
 # Komplette Pipeline mit interaktiver Modell-/Dateiauswahl
@@ -190,9 +189,7 @@ python Evaluation/run_evaluation_pipeline.py
 # Mit expliziten Parametern
 python Evaluation/run_evaluation_pipeline.py \
   --query-source Evaluation/exports/queries/list_1_queries_with_ifc.txt \
-  --expected-file Evaluation/expected_material/list_1_expected_mit-ohne_ifc.txt \
-  --cross-encoder-model BAAI/bge-reranker-v2-m3 \
-  --rerank-top-n 30
+  --expected-file Evaluation/expected_material/list_1_expected_mit-ohne_ifc.txt
 
 # Einzelne Schritte
 python Evaluation/evaluate_material_models.py   # Nur Evaluation
@@ -248,7 +245,6 @@ Konfiguration über `.env` oder Umgebungsvariablen (siehe [.env.example](.env.ex
 | `SBERT_AUTO_BENCH_BATCH` | Batch-Benchmark vor Matching | `0` |
 | `SBERT_AUTO_HEURISTIC_BATCH` | Heuristische Batch-Size | `1` (aktiv) |
 | `SBERT_CUDA_QUERY_THRESHOLD` | Mindest-Queries für Auto-GPU | `500` |
-| `SBERT_CROSS_ENCODER_REVISION` | Pinned Cross-Encoder Revision | — |
 
 ## Tests
 
@@ -261,6 +257,3 @@ python -m pytest Evaluation/tests/ -v
 [MPL-Lizenz](LICENSE).
 
 Informationen zu Drittbibliotheken und Modell-Lizenzen: [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
-
-> **Hinweis:** Einige optionale Cross-Encoder-Modelle (z. B. Jina Reranker) stehen unter
-> nicht-kommerziellen Lizenzen. Details siehe `THIRD_PARTY_NOTICES.md`.
