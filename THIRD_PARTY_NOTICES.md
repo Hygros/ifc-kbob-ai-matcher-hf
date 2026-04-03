@@ -20,21 +20,9 @@ This project uses the following third-party libraries, models, and components.
 
 ## AI / ML Models
 
-> **Important:** Some models have restrictive licenses.
-> Check the respective model card before commercial use.
-
 | Model | License | Notes |
 |---|---|---|
 | [BAAI/bge-m3](https://huggingface.co/BAAI/bge-m3) | MIT | Default bi-encoder |
-| [BAAI/bge-reranker-v2-m3](https://huggingface.co/BAAI/bge-reranker-v2-m3) | MIT | Cross-encoder option |
-| [jinaai/jina-reranker-v2-base-multilingual](https://huggingface.co/jinaai/jina-reranker-v2-base-multilingual) | **CC-BY-NC-4.0** | **Non-commercial only** |
-| [cross-encoder/mmarco-mMiniLMv2-L12-H384-v1](https://huggingface.co/cross-encoder/mmarco-mMiniLMv2-L12-H384-v1) | Apache-2.0 | Cross-encoder option |
-
-### License Warning
-
-The Jina reranker (`jinaai/jina-reranker-v2-base-multilingual`) is licensed under
-**CC-BY-NC-4.0** (non-commercial use only). If you intend to use this project
-commercially, switch to an alternative cross-encoder (e.g., `BAAI/bge-reranker-v2-m3`).
 
 ## Frontend / Viewer
 

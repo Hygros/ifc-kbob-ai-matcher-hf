@@ -35,16 +35,6 @@ def preload_sbert_resources(model_name: str) -> bool:
     return True
 
 
-@st.cache_resource(show_spinner=False)
-def preload_cross_encoder_resources(model_name: str) -> bool:
-    """Load Cross-Encoder model once per Streamlit server process."""
-    import core.sbert.sentence_transformer as sbert_mod
-
-    device = sbert_mod.resolve_runtime_device(0)
-    sbert_mod.load_or_get_cross_encoder(model_name=model_name, device=device)
-    return True
-
-
 def to_safe_filename(name: str) -> str:
     base, ext = os.path.splitext(name)
     replacements = {
@@ -171,7 +161,7 @@ def _resolve_python_executable() -> str:
     return shutil.which("python3") or shutil.which("python") or "python"
 
 
-def parse_ifc(uploaded_file, model_name: str, cross_encoder_model_name: str | None = None):
+def parse_ifc(uploaded_file, model_name: str):
     python_exe = _resolve_python_executable()
     if hasattr(uploaded_file, "seek"):
         uploaded_file.seek(0)
@@ -222,7 +212,6 @@ def parse_ifc(uploaded_file, model_name: str, cross_encoder_model_name: str | No
                 sbert_mod.run_sbert_matching(
                     jsonl_path,
                     model_name=model_name,
-                    cross_encoder_model_name=cross_encoder_model_name,
                 )
             except TypeError:
                 if hasattr(sbert_mod, "MODEL_NAME"):
@@ -245,10 +234,10 @@ def parse_ifc(uploaded_file, model_name: str, cross_encoder_model_name: str | No
         return None, None
 
 
-def load_data(upload, model_name: str, cross_encoder_model_name: str | None = None):
+def load_data(upload, model_name: str):
     if upload is None:
         return None, None
-    return parse_ifc(upload, model_name=model_name, cross_encoder_model_name=cross_encoder_model_name)
+    return parse_ifc(upload, model_name=model_name)
 
 
 def get_upload_key(upload) -> tuple | None:
