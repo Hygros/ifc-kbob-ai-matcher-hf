@@ -9,7 +9,17 @@ from .ifc_material_extract_util import extract_materials
 
 NO_AGGREGATES_ALLOWED_SUBENTITY_TYPES = {"IfcCovering", "IfcReinforcingBar"}
 DIAMETER_CANDIDATE_ENTITIES = {"IfcPile"}
-VALUE_CONVERSION_FIELDS = ["Length", "Height", "NetVolume", "GrossVolume", "Ansichtsfläche", "NetArea", "Durchmesser"]
+VALUE_CONVERSION_FIELDS = [
+    "Length",
+    "Height",
+    "NetVolume",
+    "GrossVolume",
+    "Ansichtsfläche",
+    "NetArea",
+    "NetSurfaceArea",
+    "GrossSurfaceArea",
+    "Durchmesser",
+]
 COMPUTED_FIELDS = {"Durchmesser", "Ansichtsfläche"}
 DEFAULT_PROPERTY_FIELDS = [
     "Description",
@@ -20,6 +30,8 @@ DEFAULT_PROPERTY_FIELDS = [
     "Length",
     "NetVolume",
     "GrossVolume",
+    "NetSurfaceArea",
+    "GrossSurfaceArea",
     "ReinforcementVolumeRatio",
 ]
 
@@ -277,7 +289,7 @@ def clean_and_convert_value(val, field, units):
         volume_factor = units.get("VOLUMEUNIT", 1.0)
         return round(fval * volume_factor, 9)
 
-    if field in {"AREA_PROJECTION_XY_NET", "Ansichtsfläche", "NetArea"}:
+    if field in {"AREA_PROJECTION_XY_NET", "Ansichtsfläche", "NetArea", "NetSurfaceArea", "GrossSurfaceArea"}:
         area_factor = units.get("AREAUNIT", 1.0)
         return round(fval * area_factor, 6)
 

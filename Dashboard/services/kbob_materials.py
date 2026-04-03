@@ -5,7 +5,12 @@ from pathlib import Path
 
 import streamlit as st
 
-from Dashboard.config import REINFORCEMENT_KBOB_MATERIAL, REINFORCEMENT_STEEL_DENSITY_FALLBACK
+from Dashboard.config import (
+    GALVANIZATION_DENSITY_FALLBACK,
+    GALVANIZATION_KBOB_MATERIAL,
+    REINFORCEMENT_KBOB_MATERIAL,
+    REINFORCEMENT_STEEL_DENSITY_FALLBACK,
+)
 
 
 TABLE_NAME = "Oekobilanzdaten"
@@ -114,3 +119,40 @@ def get_reinforcement_steel_density() -> float:
     except Exception:
         pass
     return REINFORCEMENT_STEEL_DENSITY_FALLBACK
+
+
+@st.cache_data(show_spinner=False)
+def _load_galvanization_density_cached(db_path: str) -> float | None:
+    """Query the ``Rohdichte`` column for the galvanization entry."""
+    with sqlite3.connect(db_path) as conn:
+        cursor = conn.cursor()
+        cursor.execute(
+            f"SELECT [{COLUMN_DENSITY}] FROM {TABLE_NAME} "
+            f"WHERE {COLUMN_MATERIAL} = ?",
+            (GALVANIZATION_KBOB_MATERIAL,),
+        )
+        row = cursor.fetchone()
+        if row and row[0] is not None:
+            try:
+                return float(row[0])
+            except (TypeError, ValueError):
+                return None
+    return None
+
+
+def get_galvanization_density() -> float:
+    """Return the area density (kg/m²) for *Verzinken* from the KBOB DB.
+
+    Falls back to ``GALVANIZATION_DENSITY_FALLBACK`` (0.679 kg/m²)
+    when the database is unreachable or the value is missing.
+    """
+    db_path = resolve_kbob_db_path()
+    if db_path is None:
+        return GALVANIZATION_DENSITY_FALLBACK
+    try:
+        density = _load_galvanization_density_cached(str(db_path))
+        if density is not None and density > 0:
+            return density
+    except Exception:
+        pass
+    return GALVANIZATION_DENSITY_FALLBACK

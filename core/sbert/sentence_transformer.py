@@ -59,10 +59,18 @@ def resolve_heuristic_batch_size(query_count: int, device: str) -> int:
 
 
 # --- Database Query ---
+# synthetic add-on rows (e.g. galvanization) and should not appear in the
+# AI-Mapping selectbox as top matches.
+SBERT_EXCLUDED_MATERIALS: set[str] = {"Verzinken"}
+
+
 def fetch_materials_from_db(connection: sqlite3.Connection) -> List[str]:
     cursor = connection.cursor()
     cursor.execute(f"SELECT {COLUMN_MATERIAL} FROM {TABLE_NAME} WHERE {COLUMN_MATERIAL} IS NOT NULL")
-    materials = [row[0] for row in cursor.fetchall() if str(row[0]).strip() != ""]
+    materials = [
+        row[0] for row in cursor.fetchall()
+        if str(row[0]).strip() != "" and row[0] not in SBERT_EXCLUDED_MATERIALS
+    ]
     # Deduplicate while preserving order (reduces corpus size and speeds up encoding/search)
     return list(dict.fromkeys(materials))
 

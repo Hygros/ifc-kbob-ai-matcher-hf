@@ -131,6 +131,36 @@ def add_reinforcement_info(df: pd.DataFrame) -> pd.DataFrame:
     return df
 
 
+# ---------------------------------------------------------------------------
+# Verzinkungsinformationen pro Element  (Galvanization enrichment)
+# ---------------------------------------------------------------------------
+
+def add_galvanization_info(df: pd.DataFrame) -> pd.DataFrame:
+    """Enrich *df* with galvanization detection columns.
+
+    New columns:
+        surface_area_m2  – float | NaN  (prefers NetSurfaceArea, fallback GrossSurfaceArea)
+        has_surface_area  – bool
+    """
+    df = df.copy()
+
+    net_sa = (
+        pd.to_numeric(df.get("NetSurfaceArea"), errors="coerce")
+        if "NetSurfaceArea" in df.columns
+        else pd.Series(dtype=float, index=df.index)
+    )
+    gross_sa = (
+        pd.to_numeric(df.get("GrossSurfaceArea"), errors="coerce")
+        if "GrossSurfaceArea" in df.columns
+        else pd.Series(dtype=float, index=df.index)
+    )
+
+    df["surface_area_m2"] = net_sa.where(net_sa.notna() & (net_sa > 0), gross_sa)
+    df["has_surface_area"] = df["surface_area_m2"].notna() & (df["surface_area_m2"] > 0)
+
+    return df
+
+
 def add_physical_quantity_columns(df: pd.DataFrame) -> pd.DataFrame:
     """Create aggregatable columns from UBP reference unit and calculation value.
 

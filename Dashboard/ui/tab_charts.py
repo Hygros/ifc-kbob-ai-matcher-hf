@@ -3,7 +3,7 @@ import pandas as pd
 import plotly.express as px
 import streamlit as st
 
-from Dashboard.config import CHART_HEIGHT, REINFORCEMENT_KBOB_MATERIAL, get_available_indicator_definitions
+from Dashboard.config import CHART_HEIGHT, GALVANIZATION_KBOB_MATERIAL, REINFORCEMENT_KBOB_MATERIAL, get_available_indicator_definitions
 
 
 def _normalize_group_value(value):
@@ -335,6 +335,48 @@ def render_tab_charts(df: pd.DataFrame | None) -> None:
                     lambda x: f"{x:.1f}" if pd.notna(x) else ""
                 )
             st.dataframe(rebar_display, width="stretch", hide_index=True)
+
+    # --- Verzinkungsannahmen (Galvanization assumptions) ---
+    if "galvanization_accepted" in df.columns:
+        galv_mask = pd.Series(
+            np.where(df["galvanization_accepted"].isna(), False, df["galvanization_accepted"]),
+            index=df.index,
+        ).astype(bool)
+        if galv_mask.any():
+            st.markdown("### Verzinkungsannahmen")
+            st.caption(
+                "Für diese Stahlbauteile wurde eine Verzinkung angenommen. "
+                "Die Umweltbelastung wird anhand der Oberfläche (m²) und der Flächendichte "
+                f"(kg/m²) als separate «{GALVANIZATION_KBOB_MATERIAL}»-Zeile in die Berechnung einbezogen."
+            )
+            galv_cols = []
+            if guid_col:
+                galv_cols.append(guid_col)
+            name_col_g = _first_existing_column(df, ["Name", "element_name"])
+            if name_col_g:
+                galv_cols.append(name_col_g)
+            entity_col_g = _first_existing_column(df, ["IfcEntity", "ifc_entity"])
+            if entity_col_g:
+                galv_cols.append(entity_col_g)
+            for gc in ["surface_area_m2"]:
+                if gc in df.columns:
+                    galv_cols.append(gc)
+            galv_display = df.loc[galv_mask, galv_cols].copy()
+            rename_g = {
+                "surface_area_m2": "Oberfläche (m²)",
+            }
+            if name_col_g:
+                rename_g[name_col_g] = "Bauteil"
+            if entity_col_g:
+                rename_g[entity_col_g] = "IfcEntity"
+            if guid_col:
+                rename_g[guid_col] = "GUID"
+            galv_display = galv_display.rename(columns=rename_g)
+            if "Oberfläche (m²)" in galv_display.columns:
+                galv_display["Oberfläche (m²)"] = galv_display["Oberfläche (m²)"].apply(
+                    lambda x: f"{x:.2f}" if pd.notna(x) else ""
+                )
+            st.dataframe(galv_display, width="stretch", hide_index=True)
 
     col1, col2 = st.columns(2)
     with col1:

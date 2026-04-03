@@ -44,6 +44,20 @@ REINFORCEMENT_STEEL_DENSITY_FALLBACK: float = 7850.0
 REINFORCEMENT_TRIGGER_MATERIALS: set[str] = {"Tiefbaubeton", "Bohrpfahlbeton"}
 
 
+# ---------------------------------------------------------------------------
+# Verzinkungserkennung (Galvanization detection)
+# ---------------------------------------------------------------------------
+# KBOB-Materialeinträge, bei denen im AI-Mapping-Tab die Verzinkungsoption
+# angezeigt wird.
+GALVANIZATION_TRIGGER_MATERIALS: set[str] = {"Stahlprofil blank"}
+
+# KBOB-Materialname für synthetische Verzinkungszeilen
+GALVANIZATION_KBOB_MATERIAL: str = "Verzinken"
+
+# Fallback-Flächendichte (kg/m²) für Verzinken, falls DB-Abfrage fehlschlägt
+GALVANIZATION_DENSITY_FALLBACK: float = 0.679
+
+
 SBERT_MODEL_OPTIONS = [
     "Hygroskopisch/bge-m3-ifc-kbob-finetuned",
     "google/embeddinggemma-300m",

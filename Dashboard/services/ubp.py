@@ -4,7 +4,7 @@ import sys
 import pandas as pd
 import streamlit as st
 
-from Dashboard.config import INDICATOR_DB_TO_COLUMN, REINFORCEMENT_KBOB_MATERIAL
+from Dashboard.config import INDICATOR_DB_TO_COLUMN, GALVANIZATION_KBOB_MATERIAL, REINFORCEMENT_KBOB_MATERIAL
 
 
 DASHBOARD_DIR = os.path.dirname(os.path.dirname(__file__))
@@ -47,11 +47,14 @@ def apply_ubp_results(df: pd.DataFrame, results: list) -> pd.DataFrame:
         df["MaterialLayerIndex"] = _normalize_layer_index_col(df["MaterialLayerIndex"])
         results_df["MaterialLayerIndex"] = _normalize_layer_index_col(results_df["MaterialLayerIndex"])
 
-    # Separate synthetic reinforcement rows (MaterialLayerIndex == "R")
+    # Separate synthetic rows (MaterialLayerIndex in {"R", "Z"})
     # which have no counterpart in df. They will be appended after the merge.
+    synthetic_mask = results_df["MaterialLayerIndex"].astype(str).isin({"R", "Z"}) if "MaterialLayerIndex" in results_df.columns else pd.Series(False, index=results_df.index)
     rebar_mask = results_df["MaterialLayerIndex"].astype(str).eq("R") if "MaterialLayerIndex" in results_df.columns else pd.Series(False, index=results_df.index)
+    galv_mask = results_df["MaterialLayerIndex"].astype(str).eq("Z") if "MaterialLayerIndex" in results_df.columns else pd.Series(False, index=results_df.index)
     rebar_results = results_df[rebar_mask].copy()
-    regular_results = results_df[~rebar_mask].copy()
+    galv_results = results_df[galv_mask].copy()
+    regular_results = results_df[~synthetic_mask].copy()
 
     keep_cols = list(merge_keys)
     for src, dst in INDICATOR_DB_TO_COLUMN.items():
@@ -87,6 +90,18 @@ def apply_ubp_results(df: pd.DataFrame, results: list) -> pd.DataFrame:
         rebar_append["element_name"] = "Bewehrungsannahme"
         rebar_append["kbob_material"] = REINFORCEMENT_KBOB_MATERIAL
         merged = pd.concat([merged, rebar_append], ignore_index=True)
+
+    # Append synthetic galvanization rows so they appear in charts/totals
+    if not galv_results.empty:
+        galv_keep = [c for c in keep_cols if c in galv_results.columns]
+        galv_append = galv_results[galv_keep].copy()
+        galv_append["IfcEntity"] = "Verzinkung (angenommen)"
+        galv_append["Name"] = "Verzinkungsannahme"
+        galv_append["galvanization_synthetic"] = True
+        galv_append["ifc_entity"] = "Verzinkung (angenommen)"
+        galv_append["element_name"] = "Verzinkungsannahme"
+        galv_append["kbob_material"] = GALVANIZATION_KBOB_MATERIAL
+        merged = pd.concat([merged, galv_append], ignore_index=True)
 
     return merged
 

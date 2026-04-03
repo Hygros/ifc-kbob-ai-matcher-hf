@@ -337,6 +337,50 @@ def calculate_ubp_for_jsonl(jsonl_path, export_dir=None, database_path=DATABASE_
                 rebar_row[col] = None
         results.append(rebar_row)
 
+    # --- Synthetische Verzinkungszeilen (galvanization assumptions) ---
+    galv_material_name = "Verzinken"
+    galv_material_vals = material_values.get(galv_material_name, {})
+    galv_density = _to_float(galv_material_vals.get(COLUMN_DENSITY))
+    if galv_density is None or galv_density <= 0:
+        galv_density = 0.679  # Fallback kg/m²
+    for entry in entries:
+        if not entry.get("galvanization_accepted"):
+            continue
+        # Prefer NetSurfaceArea, fallback to GrossSurfaceArea
+        surface_area = _to_float(entry.get("NetSurfaceArea"))
+        if surface_area is None or surface_area <= 0:
+            surface_area = _to_float(entry.get("GrossSurfaceArea"))
+        if surface_area is None or surface_area <= 0:
+            continue
+        galv_mass = surface_area * galv_density
+        guid = entry.get("GUID")
+
+        galv_row = {
+            "GUID": guid,
+            "MaterialLayerIndex": "Z",
+            "Material (KBOB)": galv_material_name,
+            "IfcEntity": entry.get("IfcEntity"),
+            "Length": None,
+            "Ansichtsfläche": None,
+            "NetArea": None,
+            "NetVolume": None,
+            "GrossVolume": None,
+            "Count": None,
+            "Weight": None,
+            "Masse (kg)": galv_mass,
+            "Bezugsgröße": "Masse (kg)",
+            "Berechnungswert": galv_mass,
+            "Fehlende Berechnungsgrundlage": None,
+        }
+        for col in columns_to_calc:
+            db_val = galv_material_vals.get(col)
+            db_val_num = _to_float(db_val)
+            if db_val_num is not None:
+                galv_row[col] = round(galv_mass * db_val_num, 0)
+            else:
+                galv_row[col] = None
+        results.append(galv_row)
+
     conn = sqlite3.connect(export_db_path)
     cursor = conn.cursor()
     if results:
