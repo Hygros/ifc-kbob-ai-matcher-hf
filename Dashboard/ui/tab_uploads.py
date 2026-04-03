@@ -65,7 +65,7 @@ def _render_embedded_viewer_tip() -> None:
                     }
                 })();
 
-                const onHfSpaceDomain = /\.hf\.space$/i.test(rootWindow.location.hostname || '');
+                const onHfSpaceDomain = /\\.hf\\.space$/i.test(rootWindow.location.hostname || '');
 
                 if (!isEmbedded || !onHfSpaceDomain) {
                     if (existingBanner) {
