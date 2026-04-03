@@ -3,9 +3,8 @@ title: IFC KBOB AI Matcher
 emoji: "🏗️"
 colorFrom: green
 colorTo: blue
-sdk: streamlit
-sdk_version: "1.54.0"
-app_file: Dashboard/app_with_viewer.py
+sdk: docker
+app_port: 7860
 pinned: false
 ---
 
