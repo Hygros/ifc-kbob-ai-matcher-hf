@@ -1,3 +1,14 @@
+---
+title: IFC KBOB AI Matcher
+emoji: "🏗️"
+colorFrom: green
+colorTo: blue
+sdk: streamlit
+sdk_version: "1.54.0"
+app_file: Dashboard/app_with_viewer.py
+pinned: false
+---
+
 # IFC-basierte Ökobilanzierung & Material-Matching
 Automatisierte Zuordnung von IFC-Bauelementen zu Ökobilanzdaten (KBOB) mit Sentence-Transformer-basiertem Matching und Berechnung von Umweltindikatoren (UBP21, GWP, Primärenergie).
 
