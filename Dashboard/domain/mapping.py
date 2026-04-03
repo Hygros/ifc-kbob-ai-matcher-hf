@@ -131,6 +131,33 @@ def add_reinforcement_info(df: pd.DataFrame) -> pd.DataFrame:
     return df
 
 
+def add_physical_quantity_columns(df: pd.DataFrame) -> pd.DataFrame:
+    """Create aggregatable columns from UBP reference unit and calculation value.
+
+    ``calc_volume_for_mass_m3`` stores NetVolume for elements calculated via
+    mass reference so charts can show volume and mass together.
+    """
+    df = df.copy()
+
+    bezug = df["Bezugsgröße"] if "Bezugsgröße" in df.columns else pd.Series("", index=df.index)
+    wert = pd.to_numeric(
+        df["Berechnungswert"] if "Berechnungswert" in df.columns else pd.Series(0.0, index=df.index),
+        errors="coerce",
+    ).fillna(0.0)
+
+    df["calc_volume_m3"] = np.where(bezug == "NetVolume", wert, 0.0)
+    df["calc_area_m2"] = np.where(bezug == "Ansichtsfläche", wert, 0.0)
+    df["calc_mass_kg"] = np.where(bezug == "Masse (kg)", wert, 0.0)
+    df["calc_length_m"] = np.where(bezug == "Length", wert, 0.0)
+
+    vol_series = pd.to_numeric(
+        df["NetVolume"] if "NetVolume" in df.columns else pd.Series(0.0, index=df.index),
+        errors="coerce",
+    ).fillna(0.0)
+    df["calc_volume_for_mass_m3"] = np.where(bezug == "Masse (kg)", vol_series, 0.0)
+    return df
+
+
 def add_domain_defaults(df: pd.DataFrame) -> pd.DataFrame:
     df = df.copy()
     colmap = {

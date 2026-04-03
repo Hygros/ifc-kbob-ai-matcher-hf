@@ -10,7 +10,7 @@ from Dashboard.config import (
     IS_HF_SPACE,
     SBERT_MODEL_OPTIONS,
 )
-from Dashboard.domain.mapping import add_domain_defaults, add_reinforcement_info
+from Dashboard.domain.mapping import add_domain_defaults, add_physical_quantity_columns, add_reinforcement_info
 from Dashboard.services.ifc_pipeline import (
     _session_data_dir,
     _session_static_dir,
@@ -192,6 +192,8 @@ def render_tab_uploads() -> None:
             df = add_domain_defaults(df)
             df = add_reinforcement_info(df)
             df, ubp_db_path = run_ubp_calculation(str(jsonl_path), df)
+            if df is not None:
+                df = add_physical_quantity_columns(df)
             st.session_state["data"] = df
             st.session_state["ai_mapping_data_version"] = st.session_state.get("ai_mapping_data_version", 0) + 1
             st.session_state.pop("ai_mapping_last_rendered_token", None)
@@ -226,6 +228,8 @@ def render_tab_uploads() -> None:
             df = add_domain_defaults(df)
             df = add_reinforcement_info(df)
             df, ubp_db_path = run_ubp_calculation(str(jsonl_path), df)
+            if df is not None:
+                df = add_physical_quantity_columns(df)
             st.session_state["data"] = df
             st.session_state["ai_mapping_data_version"] = st.session_state.get("ai_mapping_data_version", 0) + 1
             st.session_state.pop("ai_mapping_last_rendered_token", None)

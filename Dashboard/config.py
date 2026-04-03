@@ -39,6 +39,10 @@ REINFORCEMENT_KBOB_MATERIAL: str = "Armierungsstahl"
 # Fallback-Dichte (kg/m³) für Armierungsstahl, falls DB-Abfrage fehlschlägt
 REINFORCEMENT_STEEL_DENSITY_FALLBACK: float = 7850.0
 
+# KBOB-Materialeinträge, bei denen im AI-Mapping-Tab der Bewehrungsgehalt
+# (kg Stahl / m³ Beton) angezeigt und angepasst werden kann.
+REINFORCEMENT_TRIGGER_MATERIALS: set[str] = {"Tiefbaubeton", "Bohrpfahlbeton"}
+
 
 SBERT_MODEL_OPTIONS = [
     "Hygroskopisch/bge-m3-ifc-kbob-finetuned",

@@ -8,9 +8,14 @@ import pandas as pd
 import streamlit as st
 import streamlit.components.v1 as components
 
-from Dashboard.config import DEFAULT_REINFORCEMENT_RATIO, IS_HF_SPACE
+from Dashboard.config import (
+    DEFAULT_REINFORCEMENT_RATIO,
+    IS_HF_SPACE,
+    REINFORCEMENT_TRIGGER_MATERIALS,
+)
 from Dashboard.domain.mapping import (
     add_domain_defaults,
+    add_physical_quantity_columns,
     add_reinforcement_info,
     build_ai_mapping_groups,
 )
@@ -442,7 +447,7 @@ def render_tab_ai_mapping(df: pd.DataFrame | None) -> None:
             prev_sel = {}
             prev_rebar = {}
 
-        # Compute reinforcement info on the full DataFrame for status detection
+        # Compute reinforcement info on the full DataFrame for UI defaults
         rebar_df = add_reinforcement_info(add_domain_defaults(df)) if df is not None else pd.DataFrame()
 
         grouped_base = build_ai_mapping_groups(base)
@@ -587,15 +592,14 @@ def render_tab_ai_mapping(df: pd.DataFrame | None) -> None:
             rebar_source = None
             ifc_entity = str(row_data.get("IfcEntity") or "").strip()
 
-            # Determine reinforcement status from the enriched df
-            # Use the first GUID of the group to look up status
+            # Look up IFC reinforcement data from the enriched df
             group_rebar_rows = rebar_df[rebar_df["GUID"].isin(guids)] if not rebar_df.empty else pd.DataFrame()
             if not group_rebar_rows.empty:
-                first_status = group_rebar_rows.iloc[0].get("reinforcement_status", "none")
+                has_modeled_rebar = bool(group_rebar_rows.iloc[0].get("has_modeled_rebar", False))
                 first_ratio_source = group_rebar_rows.iloc[0].get("reinforcement_ratio_source")
                 first_ratio = group_rebar_rows.iloc[0].get("reinforcement_ratio_kg_m3")
             else:
-                first_status = "none"
+                has_modeled_rebar = False
                 first_ratio_source = None
                 first_ratio = None
 
@@ -603,58 +607,41 @@ def render_tab_ai_mapping(df: pd.DataFrame | None) -> None:
             prev_rebar_key = _selection_key(primary_guid, layer_index)
             prev_rebar_data = prev_rebar.get(prev_rebar_key, {})
 
-            if first_status == "explicit":
-                st.caption("✅ Bewehrung ist modelliert (IfcReinforcingBar vorhanden)")
-            elif first_status == "assumed":
-                default_ratio = float(first_ratio) if first_ratio is not None and not pd.isna(first_ratio) else DEFAULT_REINFORCEMENT_RATIO.get(ifc_entity, DEFAULT_REINFORCEMENT_RATIO["_default"])
+            # Reinforcement UI only for specific KBOB materials
+            if sel_material in REINFORCEMENT_TRIGGER_MATERIALS:
+                if has_modeled_rebar:
+                    st.caption("✅ Bewehrung ist modelliert (IfcReinforcingBar vorhanden)")
+                else:
+                    default_ratio = float(first_ratio) if first_ratio is not None and not pd.isna(first_ratio) else DEFAULT_REINFORCEMENT_RATIO.get(ifc_entity, DEFAULT_REINFORCEMENT_RATIO["_default"])
 
-                # Restore persisted state or default to True
-                prev_accepted = prev_rebar_data.get("accepted", True)
-                prev_ratio = prev_rebar_data.get("ratio")
-                if prev_ratio is not None:
-                    default_ratio = prev_ratio
+                    # Restore persisted state or default to True
+                    prev_accepted = prev_rebar_data.get("accepted", True)
+                    prev_ratio = prev_rebar_data.get("ratio")
+                    if prev_ratio is not None:
+                        default_ratio = prev_ratio
 
-                st.info(
-                    "⚠️ Keine Bewehrung modelliert. Kontrolliere die Annahme des Bewehrungsgehalts:"
-                )
-                cb_col, ni_col = st.columns([1, 2])
-                with cb_col:
-                    rebar_accepted = st.checkbox(
-                        "Bewehrung annehmen",
-                        value=prev_accepted,
-                        key=f"rebar_cb_{data_version}_{group_index}_{primary_guid}",
+                    st.info(
+                        "⚠️ Keine Bewehrung modelliert. Kontrolliere die Annahme des Bewehrungsgehalts:"
                     )
-                with ni_col:
-                    rebar_ratio_value = st.number_input(
-                        "Bewehrungsgehalt (kg/m³)",
-                        min_value=0.0,
-                        max_value=500.0,
-                        value=default_ratio,
-                        step=10.0,
-                        key=f"rebar_ratio_{data_version}_{group_index}_{primary_guid}",
-                        disabled=not rebar_accepted,
-                    )
-                if rebar_accepted:
-                    rebar_source = "user" if rebar_ratio_value != first_ratio else (first_ratio_source or "default")
-            elif first_status == "no_material":
-                st.warning("Kein Material zugewiesen.")
-                treat_as_concrete = st.checkbox(
-                    "Als Beton behandeln",
-                    value=prev_rebar_data.get("accepted", False),
-                    key=f"rebar_concrete_cb_{data_version}_{group_index}_{primary_guid}",
-                )
-                if treat_as_concrete:
-                    default_ratio_nm = prev_rebar_data.get("ratio") or DEFAULT_REINFORCEMENT_RATIO.get(ifc_entity, DEFAULT_REINFORCEMENT_RATIO["_default"])
-                    rebar_ratio_value = st.number_input(
-                        "Bewehrungsgehalt (kg/m³)",
-                        min_value=0.0,
-                        max_value=500.0,
-                        value=float(default_ratio_nm),
-                        step=10.0,
-                        key=f"rebar_ratio_nm_{data_version}_{group_index}_{primary_guid}",
-                    )
-                    rebar_accepted = True
-                    rebar_source = "user"
+                    cb_col, ni_col = st.columns([1, 2])
+                    with cb_col:
+                        rebar_accepted = st.checkbox(
+                            "Bewehrung annehmen",
+                            value=prev_accepted,
+                            key=f"rebar_cb_{data_version}_{group_index}_{primary_guid}",
+                        )
+                    with ni_col:
+                        rebar_ratio_value = st.number_input(
+                            "Bewehrungsgehalt (kg/m³)",
+                            min_value=0.0,
+                            max_value=500.0,
+                            value=default_ratio,
+                            step=10.0,
+                            key=f"rebar_ratio_{data_version}_{group_index}_{primary_guid}",
+                            disabled=not rebar_accepted,
+                        )
+                    if rebar_accepted:
+                        rebar_source = "user" if rebar_ratio_value != first_ratio else (first_ratio_source or "default")
 
             guid_layer_map = group.get("guid_layer_map", {})
             for guid in guids:
@@ -705,6 +692,8 @@ def render_tab_ai_mapping(df: pd.DataFrame | None) -> None:
                     df_new = add_domain_defaults(df_new)
                     df_new = add_reinforcement_info(df_new)
                 df_new, ubp_db_path = run_ubp_calculation(str(jsonl_path), df_new)
+                if df_new is not None:
+                    df_new = add_physical_quantity_columns(df_new)
                 if df_new is None:
                     st.error("UBP-Berechnung lieferte keine Daten.")
                     st.stop()

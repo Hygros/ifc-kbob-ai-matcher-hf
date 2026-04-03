@@ -59,7 +59,7 @@ def apply_ubp_results(df: pd.DataFrame, results: list) -> pd.DataFrame:
             keep_cols.append(src)
         if dst in results_df.columns:
             keep_cols.append(dst)
-    for diagnostic_col in ["Fehlende Berechnungsgrundlage", "Bezugsgröße", "Material (KBOB)"]:
+    for diagnostic_col in ["Fehlende Berechnungsgrundlage", "Bezugsgröße", "Material (KBOB)", "Berechnungswert", "Masse (kg)"]:
         if diagnostic_col in results_df.columns:
             keep_cols.append(diagnostic_col)
     keep_cols = list(dict.fromkeys(keep_cols))
