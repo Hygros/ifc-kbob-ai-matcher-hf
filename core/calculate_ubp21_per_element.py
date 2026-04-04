@@ -137,14 +137,15 @@ def _determine_reference_value(entry, material, material_vals):
             thickness = _get_covering_thickness(entry)
             preferred_volume = net_area * thickness
 
-    if ifc_entity == "ifcreinforcingbar":
+    if ifc_entity in ("ifcreinforcingbar", "ifcreinforcingmesh", "ifctendon"):
+        entity_label = str(entry.get("IfcEntity") or "IfcReinforcingBar")
         weight = _first_numeric(entry, ["Weight", "Weight [kg]"])
         count = _first_numeric(entry, ["Count"])
         if weight is not None and count is not None:
             return "Masse (kg)", weight * count, None
         if weight is None:
-            return "Masse (kg)", None, "Masse fehlt für IfcReinforcingBar"
-        return "Masse (kg)", None, "Anzahl fehlt für IfcReinforcingBar"
+            return "Masse (kg)", None, f"Masse fehlt für {entity_label}"
+        return "Masse (kg)", None, f"Anzahl fehlt für {entity_label}"
 
     if bezug == "m":
         value = _to_float(length)

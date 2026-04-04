@@ -7,7 +7,8 @@ import ifcopenshell.util.unit
 from .ifc_material_extract_util import extract_materials
 
 
-NO_AGGREGATES_ALLOWED_SUBENTITY_TYPES = {"IfcCovering", "IfcReinforcingBar"}
+NO_AGGREGATES_ALLOWED_SUBENTITY_TYPES = {"IfcCovering", "IfcReinforcingBar", "IfcReinforcingMesh", "IfcTendon"}
+_REINFORCEMENT_ENTITY_TYPES = {"IfcReinforcingBar", "IfcReinforcingMesh", "IfcTendon"}
 DIAMETER_CANDIDATE_ENTITIES = {"IfcPile"}
 VALUE_CONVERSION_FIELDS = [
     "Length",
@@ -108,7 +109,7 @@ def _build_no_aggregates_elements(elements):
     """Return (selected_elements, has_rebar_map).
 
     *has_rebar_map* maps element-GlobalId → ``True`` when at least one
-    ``IfcReinforcingBar`` is a sibling inside the same aggregate parent
+    reinforcement entity is a sibling inside the same aggregate parent
     (detected via ``IfcRelAggregates``).
     """
     elements_by_id = {_obj_id(element): element for element in elements}
@@ -200,11 +201,11 @@ def _build_no_aggregates_elements(elements):
     has_rebar_map: dict[str, bool] = {}
     for pid, siblings in parent_groups.items():
         rebar_present = any(
-            hasattr(s, "is_a") and s.is_a("IfcReinforcingBar") for s in siblings
+            hasattr(s, "is_a") and s.is_a() in _REINFORCEMENT_ENTITY_TYPES for s in siblings
         )
         for s in siblings:
             guid = getattr(s, "GlobalId", None)
-            if guid and not (hasattr(s, "is_a") and s.is_a("IfcReinforcingBar")):
+            if guid and not (hasattr(s, "is_a") and s.is_a() in _REINFORCEMENT_ENTITY_TYPES):
                 has_rebar_map[guid] = rebar_present
 
     # --- Build aggregate_child_guids_map ---
@@ -330,7 +331,7 @@ def build_export_dicts(model, elements, property_fields, units, has_rebar_map=No
     """Build list of dicts for JSONL export.
 
     *has_rebar_map* (optional) maps element-GlobalId to ``True`` when the
-    element has modeled ``IfcReinforcingBar`` siblings in the same aggregate.
+    element has modeled reinforcement siblings in the same aggregate.
 
     *aggregate_child_guids_map* (optional) maps element-GlobalId to a list of
     descendant GlobalIds whose geometry is visible in the viewer but that have
@@ -356,7 +357,7 @@ def build_export_dicts(model, elements, property_fields, units, has_rebar_map=No
         description = getattr(element, "Description", None)
         base_fields = [field for field in property_fields if field not in COMPUTED_FIELDS]
         fields_to_extract = base_fields + ["Height", "NetArea"]
-        if ifc_entity == "IfcReinforcingBar":
+        if ifc_entity in _REINFORCEMENT_ENTITY_TYPES:
             fields_to_extract.extend(["Count", "Weight"])
 
         extracted_properties = extract_fields_from_psets(property_sets, fields_to_extract)
@@ -397,7 +398,7 @@ def build_export_dicts(model, elements, property_fields, units, has_rebar_map=No
             **filtered_properties,
         }
 
-        # Annotate whether modeled IfcReinforcingBar siblings exist
+        # Annotate whether modeled reinforcement siblings exist
         if guid and guid in has_rebar_map:
             base_dict["HasModeledRebar"] = has_rebar_map[guid]
 

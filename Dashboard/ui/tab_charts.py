@@ -301,7 +301,7 @@ def render_tab_charts(df: pd.DataFrame | None) -> None:
         if rebar_mask.any():
             st.markdown("### Bewehrungsannahmen")
             st.caption(
-                "Diese Beton-Bauteile haben kein modelliertes Bewehrungseisen (IfcReinforcingBar). "
+                "Diese Beton-Bauteile haben kein modelliertes Bewehrungseisen (IfcReinforcingBar/IfcTendon). "
                 "Die Bewehrung wurde anhand des Bewehrungsgehalts (kg/m³) angenommen und als "
                 f"separate «{REINFORCEMENT_KBOB_MATERIAL}»-Zeile in die UBP-Berechnung einbezogen."
             )

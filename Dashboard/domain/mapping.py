@@ -88,8 +88,8 @@ def add_reinforcement_info(df: pd.DataFrame) -> pd.DataFrame:
     # --- reinforcement_ratio_source & reinforcement_ratio_kg_m3 ---
     def _ratio_row(row):
         ifc_entity = str(row.get("IfcEntity") or "").strip()
-        # Skip IfcReinforcingBar itself
-        if ifc_entity == "IfcReinforcingBar":
+        # Skip reinforcement entities themselves
+        if ifc_entity in REINFORCEMENT_ENTITIES:
             return pd.Series({"reinforcement_ratio_source": None, "reinforcement_ratio_kg_m3": None})
         ifc_ratio = _to_float_safe(row.get("ReinforcementVolumeRatio"))
         if ifc_ratio is not None and ifc_ratio > 0:
@@ -103,7 +103,7 @@ def add_reinforcement_info(df: pd.DataFrame) -> pd.DataFrame:
     # --- reinforcement_status ---
     def _status(row):
         ifc_entity = str(row.get("IfcEntity") or "").strip()
-        if ifc_entity == "IfcReinforcingBar":
+        if ifc_entity in REINFORCEMENT_ENTITIES:
             return "none"
         has_material = bool(row.get("Material")) and str(row.get("Material", "")).strip() not in ("", "nan", "None", "[]")
         if not has_material:

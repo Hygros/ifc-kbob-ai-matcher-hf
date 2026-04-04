@@ -637,7 +637,7 @@ def render_tab_ai_mapping(df: pd.DataFrame | None) -> None:
             # Reinforcement UI only for specific KBOB materials
             if sel_material in REINFORCEMENT_TRIGGER_MATERIALS:
                 if has_modeled_rebar:
-                    st.caption("✅ Bewehrung ist modelliert (IfcReinforcingBar vorhanden)")
+                    st.caption("✅ Bewehrung ist modelliert (Bewehrungselement vorhanden)")
                 else:
                     default_ratio = float(first_ratio) if first_ratio is not None and not pd.isna(first_ratio) else DEFAULT_REINFORCEMENT_RATIO.get(ifc_entity, DEFAULT_REINFORCEMENT_RATIO["_default"])
 
