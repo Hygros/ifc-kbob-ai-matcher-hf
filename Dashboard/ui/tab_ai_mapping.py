@@ -225,48 +225,6 @@ def _render_viewer(ifc_filename: str | None, active_guid: str | None, active_gui
             f"<div class='viewer-sticky'><iframe class='viewer-iframe' src='{viewer_url}'></iframe></div>",
             unsafe_allow_html=True,
         )
-        st.html(
-            """
-            <script>
-            (() => {
-                const rootWindow = window.parent;
-
-                const applySticky = () => {
-                    const viewer = rootWindow.document.querySelector('.viewer-sticky');
-                    if (!viewer) return;
-                    const column = viewer.closest('[data-testid="stColumn"]');
-                    const target = column || viewer.closest('[data-testid="stElementContainer"]') || viewer.parentElement;
-
-                    const isEmbedded = (() => {
-                        try {
-                            return rootWindow.top !== rootWindow.self;
-                        } catch (err) {
-                            return true;
-                        }
-                    })();
-
-                    // Sticky on parent container is more reliable in Streamlit column layouts.
-                    if (target) {
-                        target.style.position = 'sticky';
-                        target.style.top = isEmbedded ? '1rem' : '5rem';
-                        target.style.alignSelf = 'flex-start';
-                        target.style.zIndex = '1';
-                    }
-
-                    // Let CSS control viewer position to avoid conflicting inline overrides.
-                    viewer.style.position = '';
-                    viewer.style.top = '';
-                    viewer.style.alignSelf = '';
-                    viewer.style.zIndex = '';
-                };
-
-                applySticky();
-                setTimeout(applySticky, 250);
-                setTimeout(applySticky, 1000);
-            })();
-            </script>
-            """
-        )
         # Bridge is rendered later, after group labels are in the DOM, with guid_map.
     else:
         st.info("Kein IFC-Modell fuer den Viewer gefunden. Lade eine IFC-Datei im Upload-Tab.")
@@ -280,6 +238,7 @@ def render_tab_ai_mapping(df: pd.DataFrame | None) -> None:
 
     _render_embedded_viewer_tip()
 
+    sticky_top = "1rem" if IS_HF_SPACE else "5rem"
     st.markdown(
         """
         <style>
@@ -299,17 +258,19 @@ def render_tab_ai_mapping(df: pd.DataFrame | None) -> None:
             .block-container {
                 overflow: visible;
             }
-            .viewer-sticky {
-                position: sticky;
-                top: 1rem;
+            [data-testid="stColumn"]:has(.viewer-sticky) {
+                position: sticky !important;
+                top: __STICKY_TOP__;
                 align-self: flex-start;
                 z-index: 1;
+            }
+            .viewer-sticky {
                 will-change: transform;
                 height: fit-content;
             }
         }
         </style>
-        """,
+        """.replace("__STICKY_TOP__", sticky_top),
         unsafe_allow_html=True,
     )
 
