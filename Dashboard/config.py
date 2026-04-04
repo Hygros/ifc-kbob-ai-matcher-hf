@@ -60,7 +60,6 @@ GALVANIZATION_DENSITY_FALLBACK: float = 0.679
 
 SBERT_MODEL_OPTIONS = [
     "Hygroskopisch/bge-m3-ifc-kbob-finetuned",
-    "google/embeddinggemma-300m",
     "BAAI/bge-m3",
     "intfloat/multilingual-e5-large",
     "intfloat/multilingual-e5-base",
