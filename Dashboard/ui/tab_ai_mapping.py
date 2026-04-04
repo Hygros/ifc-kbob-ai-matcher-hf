@@ -6,7 +6,6 @@ from urllib.parse import quote, urlencode
 
 import pandas as pd
 import streamlit as st
-import streamlit.components.v1 as components
 
 from Dashboard.config import (
     DEFAULT_REINFORCEMENT_RATIO,
@@ -188,7 +187,7 @@ def _render_embedded_viewer_tip() -> None:
     if not IS_HF_SPACE:
         return
 
-    components.html(
+    st.html(
         """
         <script>
         (() => {
@@ -273,8 +272,6 @@ def _render_embedded_viewer_tip() -> None:
         })();
         </script>
         """,
-        height=0,
-        width=0,
     )
 
 

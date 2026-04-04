@@ -6,7 +6,6 @@ import shutil
 import sys
 
 import streamlit as st
-import streamlit.components.v1 as components
 
 
 def _is_port_in_use(port: int) -> bool:
@@ -237,13 +236,10 @@ def render_viewer_bridge(
         console.warn('Viewer bridge failed to post selection', err);
     }}
 
-    if (window.Streamlit && typeof window.Streamlit.setFrameHeight === 'function') {{
-        window.Streamlit.setFrameHeight(0);
-    }}
 }})();
 </script>
 """
-    components.html(bridge_html, height=0, width=0)
+    st.html(bridge_html)
     return None
 
 
