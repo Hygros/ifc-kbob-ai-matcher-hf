@@ -187,91 +187,17 @@ def _render_embedded_viewer_tip() -> None:
     if not IS_HF_SPACE:
         return
 
-    st.html(
-        """
-        <script>
-        (() => {
-            const rootWindow = window.parent;
-            const bannerId = 'ifc-lite-embed-banner';
-
-            const ensureEmbeddedBanner = () => {
-                const existingBanner = rootWindow.document.getElementById(bannerId);
-
-                const isEmbedded = (() => {
-                    try {
-                        return rootWindow.top !== rootWindow.self;
-                    } catch (err) {
-                        return true;
-                    }
-                })();
-
-                const onHfSpaceDomain = /\\.hf\\.space$/i.test(rootWindow.location.hostname || '');
-
-                if (!isEmbedded || !onHfSpaceDomain) {
-                    if (existingBanner) {
-                        existingBanner.remove();
-                    }
-                    return;
-                }
-
-                if (existingBanner) {
-                    return;
-                }
-
-                const mountPoint =
-                    rootWindow.document.querySelector('[data-testid="block-container"]') ||
-                    rootWindow.document.querySelector('.block-container') ||
-                    rootWindow.document.body;
-
-                if (!mountPoint) {
-                    return;
-                }
-
-                const banner = rootWindow.document.createElement('div');
-                banner.id = bannerId;
-                banner.style.display = 'flex';
-                banner.style.flexWrap = 'wrap';
-                banner.style.alignItems = 'center';
-                banner.style.justifyContent = 'space-between';
-                banner.style.gap = '0.75rem';
-                banner.style.padding = '0.75rem 1rem';
-                banner.style.margin = '0 0 0.75rem 0';
-                banner.style.border = '1px solid #b6d7ff';
-                banner.style.borderRadius = '10px';
-                banner.style.background = '#eef6ff';
-                banner.style.color = '#0f2b4c';
-
-                const info = rootWindow.document.createElement('div');
-                info.textContent = "Privacy notice: Uploaded IFC files are stored temporarily in a session-scoped directory and automatically deleted after 2 hours. Other users cannot access your files. For additional protection, consider using a private HF Space. Viewer tip: In embedded Spaces mode, the viewer's synchronized scrolling may be limited. For stable operation, open the space directly via the hf.space app.";
-                info.style.fontSize = '0.92rem';
-                info.style.fontWeight = '500';
-
-                const link = rootWindow.document.createElement('a');
-                const directUrl = `${rootWindow.location.origin}${rootWindow.location.pathname}${rootWindow.location.search}${rootWindow.location.hash}`;
-                link.href = directUrl;
-                link.target = '_blank';
-                link.rel = 'noopener noreferrer';
-                link.textContent = 'open hf.space';
-                link.style.display = 'inline-block';
-                link.style.padding = '0.35rem 0.65rem';
-                link.style.borderRadius = '8px';
-                link.style.border = '1px solid #8ab8ff';
-                link.style.background = '#ffffff';
-                link.style.color = '#124070';
-                link.style.fontWeight = '600';
-                link.style.textDecoration = 'none';
-
-                banner.appendChild(info);
-                banner.appendChild(link);
-                mountPoint.prepend(banner);
-            };
-
-            ensureEmbeddedBanner();
-            setTimeout(ensureEmbeddedBanner, 120);
-            setTimeout(ensureEmbeddedBanner, 450);
-        })();
-        </script>
-        """,
+    space_id = os.environ.get("SPACE_ID", "")
+    direct_url = f"https://{space_id.replace('/', '-').lower()}.hf.space"
+    st.info(
+        "**Privacy notice:** Uploaded IFC files are stored temporarily in a "
+        "session-scoped directory and automatically deleted after 2\u00a0hours. "
+        "Other users cannot access your files. For additional protection, "
+        "consider using a private HF Space.\n\n"
+        "**Viewer tip:** In embedded Spaces mode, the viewer\u2019s synchronized "
+        "scrolling may be limited. For stable operation, "
+        f"[open the Space directly]({direct_url}).",
+        icon="\u2139\ufe0f",
     )
 
 
