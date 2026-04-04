@@ -6,7 +6,6 @@ from urllib.parse import quote, urlencode
 
 import pandas as pd
 import streamlit as st
-import streamlit.components.v1 as components
 
 from Dashboard.config import (
     DEFAULT_REINFORCEMENT_RATIO,
@@ -188,7 +187,7 @@ def _render_embedded_viewer_tip() -> None:
     if not IS_HF_SPACE:
         return
 
-    components.html(
+    st.html(
         """
         <script>
         (() => {
@@ -272,9 +271,7 @@ def _render_embedded_viewer_tip() -> None:
             setTimeout(ensureEmbeddedBanner, 450);
         })();
         </script>
-        """,
-        height=0,
-        width=0,
+        """
     )
 
 
@@ -302,7 +299,7 @@ def _render_viewer(ifc_filename: str | None, active_guid: str | None, active_gui
             f"<div class='viewer-sticky'><iframe class='viewer-iframe' src='{viewer_url}'></iframe></div>",
             unsafe_allow_html=True,
         )
-        components.html(
+        st.html(
             """
             <script>
             (() => {
@@ -342,9 +339,7 @@ def _render_viewer(ifc_filename: str | None, active_guid: str | None, active_gui
                 setTimeout(applySticky, 1000);
             })();
             </script>
-            """,
-            height=0,
-            width=0,
+            """
         )
         # Bridge is rendered later, after group labels are in the DOM, with guid_map.
     else:
