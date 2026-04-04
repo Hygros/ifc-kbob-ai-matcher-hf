@@ -238,7 +238,7 @@ def render_tab_ai_mapping(df: pd.DataFrame | None) -> None:
 
     _render_embedded_viewer_tip()
 
-    sticky_top = "1rem" if IS_HF_SPACE else "5rem"
+    sticky_top = "3.5rem" if IS_HF_SPACE else "5rem"
     st.markdown(
         """
         <style>
