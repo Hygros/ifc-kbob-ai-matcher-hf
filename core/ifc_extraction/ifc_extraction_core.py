@@ -353,6 +353,10 @@ def build_export_dicts(model, elements, property_fields, units, has_rebar_map=No
         ifc_entity = element.is_a() if hasattr(element, "is_a") else None
         name = getattr(element, "Name", None)
         predefined_type = getattr(element, "PredefinedType", None)
+        if str(predefined_type).upper() == "USERDEFINED":
+            object_type = getattr(element, "ObjectType", None)
+            if object_type and str(object_type).strip():
+                predefined_type = str(object_type).strip()
         guid = element.GlobalId if hasattr(element, "GlobalId") else None
         description = getattr(element, "Description", None)
         base_fields = [field for field in property_fields if field not in COMPUTED_FIELDS]
