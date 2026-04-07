@@ -78,9 +78,9 @@ def render_viewer_bridge(
     const GUID_MAP = {guid_map_json};
     const parentWindow = window.parent;
     const _viewerFrame = parentWindow.document.querySelector('iframe.viewer-iframe');
-    let VIEWER_ORIGIN = 'http://localhost:3000';
+    let VIEWER_ORIGIN = window.location.origin;
     if (_viewerFrame && _viewerFrame.src) {{
-        try {{ VIEWER_ORIGIN = new URL(_viewerFrame.src).origin; }} catch(e) {{}}
+        try {{ VIEWER_ORIGIN = new URL(_viewerFrame.src, parentWindow.location.href).origin; }} catch(e) {{}}
     }}
     const getViewerFrame = () => parentWindow.document.querySelector('iframe.viewer-iframe');
 
@@ -160,7 +160,7 @@ def render_viewer_bridge(
         parentWindow.removeEventListener('message', parentWindow.__ifcLiteSelectionMessageHandler);
     }}
     parentWindow.__ifcLiteSelectionMessageHandler = (event) => {{
-        if (event.origin !== VIEWER_ORIGIN && event.origin !== window.location.origin) return;
+        if (event.origin !== VIEWER_ORIGIN && event.origin !== window.location.origin && event.origin !== parentWindow.location.origin) return;
         const msg = event.data;
         if (!msg || typeof msg !== 'object') return;
         if (msg.type === 'ifc-lite-viewer-selection') {{
@@ -239,7 +239,7 @@ def render_viewer_bridge(
 }})();
 </script>
 """
-    st.html(bridge_html)
+    st.html(bridge_html, unsafe_allow_javascript=True)
     return None
 
 
