@@ -12,6 +12,7 @@ from Dashboard.config import (
     GALVANIZATION_TRIGGER_MATERIALS,
     IS_HF_SPACE,
     REINFORCEMENT_TRIGGER_MATERIALS,
+    USE_COMPONENT_VIEWER,
 )
 from Dashboard.domain.mapping import (
     add_domain_defaults,
@@ -22,6 +23,13 @@ from Dashboard.domain.mapping import (
 )
 from Dashboard.services.kbob_materials import load_all_kbob_materials
 from Dashboard.services.ubp import run_ubp_calculation
+from Dashboard.services.component_viewer import (
+    build_component_file_url,
+    build_component_viewer_url,
+    render_component_viewer_bridge,
+    render_ifc_viewer_component,
+    selection_signature,
+)
 from Dashboard.services.viewer import ensure_static_server, render_viewer_bridge, set_active_guid
 
 
@@ -209,6 +217,16 @@ def _render_viewer(ifc_filename: str | None, active_guid: str | None, active_gui
         ifc_path = None
 
     if ifc_path and os.path.exists(ifc_path):
+        if USE_COMPONENT_VIEWER:
+            file_stat = os.stat(ifc_path)
+            cache_bust = f"{file_stat.st_mtime_ns}-{file_stat.st_size}"
+            file_url = build_component_file_url(str(ifc_filename), cache_bust)
+            viewer_url = build_component_viewer_url(file_url, cache_bust)
+            if file_url.startswith("http://127.0.0.1:8080/"):
+                ensure_static_server(static_dir, port=8080)
+            render_ifc_viewer_component(viewer_url)
+            return True
+
         ensure_static_server(static_dir, port=8080)
         file_stat = os.stat(ifc_path)
         cache_bust = f"{file_stat.st_mtime_ns}-{file_stat.st_size}"
@@ -609,7 +627,16 @@ def render_tab_ai_mapping(df: pd.DataFrame | None) -> None:
                     map_guids.append(g)
             for g in map_guids:
                 guid_map.setdefault(g, []).append(gi)
-        render_viewer_bridge(active_guid, active_guids, guid_map=guid_map)
+        bridge_sig = selection_signature(active_guid, active_guids)
+        if USE_COMPONENT_VIEWER:
+            render_component_viewer_bridge(
+                active_guid,
+                active_guids,
+                guid_map=guid_map,
+                bridge_selection_signature=bridge_sig,
+            )
+        else:
+            render_viewer_bridge(active_guid, active_guids, guid_map=guid_map)
 
     with right_col:
         submitted = st.button("💾 Auswahl speichern", use_container_width=True)

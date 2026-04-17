@@ -5,9 +5,11 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "NODE_OPTIONS='--max-old-space-size=4096' bash -c '(tsc || true) && vite build'",
+    "build": "node --max-old-space-size=4096 ./node_modules/vite/bin/vite.js build",
+    "sync:streamlit-static": "node ./scripts/sync-streamlit-static.mjs",
+    "build:streamlit-static": "npm run build && npm run sync:streamlit-static",
     "preview": "vite preview",
-    "test": "bash -c 'shopt -s globstar && tsx --test src/**/*.test.ts'",
+    "test": "tsx --test \"src/**/*.test.ts\"",
     "check:templates": "tsc -p src/lib/scripts/templates/tsconfig.json --noEmit"
   },
   "dependencies": {
@@ -33,6 +35,7 @@
     "@ifc-lite/query": "^1.11.0",
     "@ifc-lite/renderer": "^1.11.0",
     "@ifc-lite/sandbox": "^1.11.0",
+    "@ifc-lite/sdk": "^1.11.0",
     "@ifc-lite/server-client": "^1.11.0",
     "@ifc-lite/spatial": "^1.11.0",
     "@ifc-lite/wasm": "^1.11.0",

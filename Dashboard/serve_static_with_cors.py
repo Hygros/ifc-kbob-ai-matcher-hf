@@ -16,7 +16,7 @@ def _build_allowed_origins() -> list[str]:
     """
     origins = os.environ.get(
         "CORS_ALLOWED_ORIGINS",
-        "http://127.0.0.1:8501,http://localhost:8501,http://127.0.0.1:3000,http://localhost:3000",
+        "http://127.0.0.1:8501,http://localhost:8501,http://127.0.0.1:7860,http://localhost:7860,http://127.0.0.1:3000,http://localhost:3000",
     ).split(",")
 
     space_id = os.environ.get("SPACE_ID", "")
@@ -45,6 +45,7 @@ class CORSRequestHandler(http.server.SimpleHTTPRequestHandler):
 
     def end_headers(self):
         origin = self.headers.get("Origin", "")
+        self.send_header("Vary", "Origin")
         if origin in _ALLOWED_ORIGINS:
             self.send_header("Access-Control-Allow-Origin", origin)
         super().end_headers()

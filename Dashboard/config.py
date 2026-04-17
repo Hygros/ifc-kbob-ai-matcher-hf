@@ -15,6 +15,15 @@ IS_HF_SPACE: bool = bool(os.environ.get("SPACE_ID"))
 
 
 # ---------------------------------------------------------------------------
+# Viewer runtime mode
+# ---------------------------------------------------------------------------
+# "iframe"  -> legacy mode (nginx + /viewer/ + /static-ifc/ routes)
+# "component" -> no-proxy migration mode (single Streamlit entrypoint)
+VIEWER_EMBED_MODE: str = str(os.environ.get("VIEWER_EMBED_MODE", "iframe")).strip().lower()
+USE_COMPONENT_VIEWER: bool = VIEWER_EMBED_MODE == "component"
+
+
+# ---------------------------------------------------------------------------
 # Bewehrungserkennung (Reinforcement detection)
 # ---------------------------------------------------------------------------
 # Case-insensitive Substrings – deckt z.B. Stahlbeton, Ortbeton, Spritzbeton,

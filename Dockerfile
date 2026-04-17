@@ -36,6 +36,8 @@ COPY Ökobilanzdaten.sqlite3      ./
 
 # Pre-built ifc-lite viewer (from stage 1)
 COPY --from=viewer-build /build/dist/ Dashboard/ifc-lite/dist/
+# Streamlit static path for no-proxy component mode (/app/static/viewer/*)
+COPY --from=viewer-build /build/dist/ Dashboard/static/viewer/
 
 # nginx configuration
 COPY nginx.conf /etc/nginx/nginx.conf

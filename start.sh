@@ -7,6 +7,15 @@
 # ---------------------------------------------------------------------------
 set -e
 
+# Component migration mode: run a single Streamlit entrypoint on the
+# Hugging Face public port and skip nginx-based proxy routing.
+if [ "${VIEWER_EMBED_MODE:-iframe}" = "component" ]; then
+    export _ST_LAUNCHED=1
+    exec python -m streamlit run Dashboard/app_with_viewer.py \
+        --server.port=7860 \
+        --server.address=0.0.0.0
+fi
+
 # Start nginx (daemonises automatically; set -e catches failures)
 nginx
 

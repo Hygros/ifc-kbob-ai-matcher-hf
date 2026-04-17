@@ -16,6 +16,7 @@ type LegacySelectGuidsMessage = {
 type EmbedSelectByGuidMessage = {
     source: 'ifc-lite-embed';
     version?: string;
+    messageId?: string;
     type: 'SELECT_BY_GUID';
     data?: {
         guids?: string[];
@@ -25,6 +26,7 @@ type EmbedSelectByGuidMessage = {
 type EmbedClearSelectionMessage = {
     source: 'ifc-lite-embed';
     version?: string;
+    messageId?: string;
     type: 'CLEAR_SELECTION';
 };
 
@@ -51,11 +53,20 @@ function filenameFromUrl(inputUrl: string): string {
     }
 }
 
-function resolveGlobalIdsFromGuids(guids: string[]): number[] {
+type SelectionResolution = {
+    resolvedIds: number[];
+    resolvedGuids: string[];
+    unresolvedGuids: string[];
+};
+
+function resolveGlobalIdsFromGuids(guids: string[]): SelectionResolution {
     const state = useViewerStore.getState();
-    const wanted = new Set(guids.filter((entry) => typeof entry === 'string' && entry.trim()).map((entry) => entry.trim()));
+    const wantedList = Array.from(
+        new Set(guids.filter((entry) => typeof entry === 'string' && entry.trim()).map((entry) => entry.trim()))
+    );
+    const wanted = new Set(wantedList);
     if (wanted.size === 0) {
-        return [];
+        return { resolvedIds: [], resolvedGuids: [], unresolvedGuids: [] };
     }
 
     const resolved = new Set<number>();
@@ -130,23 +141,29 @@ function resolveGlobalIdsFromGuids(guids: string[]): number[] {
         }
     }
 
-    return Array.from(resolved);
+    return {
+        resolvedIds: Array.from(resolved),
+        resolvedGuids: wantedList.filter((entry) => !remaining.has(entry)),
+        unresolvedGuids: wantedList.filter((entry) => remaining.has(entry)),
+    };
 }
 
-function applyGuidSelection(guids: string[]): void {
+function applyGuidSelection(guids: string[]): SelectionResolution {
     const state = useViewerStore.getState();
-    const resolvedIds = resolveGlobalIdsFromGuids(guids);
+    const resolution = resolveGlobalIdsFromGuids(guids);
+    const resolvedIds = resolution.resolvedIds;
 
     state.clearEntitySelection();
 
     if (resolvedIds.length === 0) {
-        return;
+        return resolution;
     }
 
     state.setSelectedEntityIds(resolvedIds);
     const activeGlobalId = resolvedIds[resolvedIds.length - 1];
     state.setSelectedEntityId(activeGlobalId);
     state.setSelectedEntity(resolveEntityRef(activeGlobalId));
+    return resolution;
 }
 
 export function StreamlitBridge() {
@@ -154,7 +171,27 @@ export function StreamlitBridge() {
     const selectedEntity = useViewerStore((state) => state.selectedEntity);
     const selectedEntityIds = useViewerStore((state) => state.selectedEntityIds);
     const attemptedModelUrlRef = useRef<string | null>(null);
+    const parentTargetOriginRef = useRef<string>('*');
+    const pendingCommandRef = useRef<{ messageId: string | null; requestedGuids: string[] }>({
+        messageId: null,
+        requestedGuids: [],
+    });
     const modelUrl = useMemo(() => parseModelUrl(window.location.search), []);
+
+    const postViewerReady = (loaded: boolean) => {
+        if (window.parent === window) {
+            return;
+        }
+        const targetOrigin = parentTargetOriginRef.current || '*';
+        const payload = {
+            source: 'ifc-lite-embed',
+            version: '1',
+            type: 'VIEWER_READY',
+            data: { loaded },
+        };
+        window.parent.postMessage(payload, targetOrigin);
+        window.parent.postMessage({ ...payload, type: 'ifc-lite-viewer-ready' }, targetOrigin);
+    };
 
     const resolveGuidFromGlobalId = (globalId: number): string | null => {
         const state = useViewerStore.getState();
@@ -206,6 +243,15 @@ export function StreamlitBridge() {
     };
 
     useEffect(() => {
+        postViewerReady(false);
+    }, []);
+
+    useEffect(() => {
+        const loaded = models.size > 0 || Boolean(geometryResult?.meshes?.length);
+        postViewerReady(loaded);
+    }, [models.size, geometryResult?.meshes?.length]);
+
+    useEffect(() => {
         if (!modelUrl || loading) {
             return;
         }
@@ -243,11 +289,17 @@ export function StreamlitBridge() {
                 return;
             }
 
+            if (typeof event.origin === 'string' && event.origin && event.origin !== 'null') {
+                parentTargetOriginRef.current = event.origin;
+            }
+
             if (payload.type === 'ifc-lite-select-guid') {
                 const guid = payload.guid;
                 if (typeof guid === 'string' && guid.trim()) {
+                    pendingCommandRef.current = { messageId: null, requestedGuids: [guid] };
                     applyGuidSelection([guid]);
                 } else {
+                    pendingCommandRef.current = { messageId: null, requestedGuids: [] };
                     useViewerStore.getState().clearEntitySelection();
                 }
                 return;
@@ -255,18 +307,44 @@ export function StreamlitBridge() {
 
             if (payload.type === 'ifc-lite-select-guids') {
                 const guids = Array.isArray(payload.guids) ? payload.guids : [];
+                pendingCommandRef.current = { messageId: null, requestedGuids: guids };
                 applyGuidSelection(guids);
                 return;
             }
 
             if (payload.source === 'ifc-lite-embed' && payload.type === 'CLEAR_SELECTION') {
+                pendingCommandRef.current = {
+                    messageId: typeof payload.messageId === 'string' ? payload.messageId : null,
+                    requestedGuids: [],
+                };
                 useViewerStore.getState().clearEntitySelection();
                 return;
             }
 
             if (payload.source === 'ifc-lite-embed' && payload.type === 'SELECT_BY_GUID') {
                 const guids = Array.isArray(payload.data?.guids) ? payload.data.guids : [];
-                applyGuidSelection(guids);
+                pendingCommandRef.current = {
+                    messageId: typeof payload.messageId === 'string' ? payload.messageId : null,
+                    requestedGuids: guids,
+                };
+                const result = applyGuidSelection(guids);
+                if (result.unresolvedGuids.length > 0 && window.parent !== window) {
+                    const targetOrigin = parentTargetOriginRef.current || '*';
+                    window.parent.postMessage(
+                        {
+                            type: 'ifc-lite-viewer-error',
+                            version: '1',
+                            sourceMessageId: pendingCommandRef.current.messageId,
+                            code: 'GUID_NOT_FOUND',
+                            message: 'One or more GUIDs could not be resolved in the loaded model',
+                            details: {
+                                requestedGuids: guids,
+                                unresolvedGuids: result.unresolvedGuids,
+                            },
+                        },
+                        targetOrigin
+                    );
+                }
             }
         };
 
@@ -286,14 +364,25 @@ export function StreamlitBridge() {
         const primaryGuid = resolveGuidFromEntityRef() || (guids.length > 0 ? guids[guids.length - 1] : null);
 
         if (window.parent !== window) {
+            const targetOrigin = parentTargetOriginRef.current || '*';
+            const requestedGuids = pendingCommandRef.current.requestedGuids;
+            const sourceMessageId = pendingCommandRef.current.messageId;
             window.parent.postMessage(
                 {
                     type: 'ifc-lite-viewer-selection',
+                    version: '1',
+                    sourceMessageId,
                     guid: primaryGuid,
                     guids,
+                    resolved: requestedGuids.map((entry) => guids.includes(entry)),
+                    timestamp: Date.now(),
                 },
-                '*'
+                targetOrigin
             );
+
+            if (sourceMessageId) {
+                pendingCommandRef.current = { messageId: null, requestedGuids: [] };
+            }
         }
     }, [selectedEntity, selectedEntityIds]);
 
