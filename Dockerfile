@@ -1,6 +1,6 @@
 # ===========================================================================
 # Hugging Face Spaces – Docker SDK
-# Multi-stage build: (1) build ifc-lite viewer, (2) Python runtime with nginx
+# Multi-stage build: (1) build ifc-lite viewer, (2) Python runtime
 # ===========================================================================
 
 # --- Stage 1: Build the ifc-lite 3D viewer ---------------------------------
@@ -14,11 +14,6 @@ RUN npm run build
 
 # --- Stage 2: Python runtime -----------------------------------------------
 FROM python:3.11-slim
-
-# nginx for reverse-proxying Streamlit + viewer + static files on one port
-RUN DEBIAN_FRONTEND=noninteractive apt-get update \
-    && DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends nginx \
-    && rm -rf /var/lib/apt/lists/*
 
 # HF Spaces convention: non-root user with uid 1000
 RUN useradd -m -u 1000 user
@@ -39,9 +34,6 @@ COPY --from=viewer-build /build/dist/ Dashboard/ifc-lite/dist/
 # Streamlit static path for no-proxy component mode (/app/static/viewer/*)
 COPY --from=viewer-build /build/dist/ Dashboard/static/viewer/
 
-# nginx configuration
-COPY nginx.conf /etc/nginx/nginx.conf
-
 # Streamlit configuration
 RUN mkdir -p /app/.streamlit
 COPY .streamlit/config.toml /app/.streamlit/config.toml
@@ -52,7 +44,7 @@ RUN chmod +x start.sh
 
 # Writable directories for runtime data
 RUN mkdir -p /app/Dashboard/static /app/Dashboard/data /app/models \
-    && chown -R user:user /app /var/log/nginx /var/lib/nginx /run
+    && chown -R user:user /app
 
 EXPOSE 7860
 

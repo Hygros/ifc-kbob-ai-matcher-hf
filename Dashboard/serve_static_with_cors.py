@@ -9,7 +9,7 @@ def _build_allowed_origins() -> list[str]:
 
     Local development ports are always permitted.  When running on
     Hugging Face Spaces the Space's own ``*.hf.space`` origin is added
-    so that the viewer iframe can fetch IFC files through nginx.
+    so that the viewer iframe can fetch IFC files in no-proxy mode.
     The previous behaviour of mirroring *any* ``Origin`` header is
     removed to prevent data exfiltration by arbitrary third-party
     websites.

@@ -4,9 +4,7 @@ import secrets
 import streamlit as st
 
 from Dashboard.config import DEFAULT_SBERT_MODEL
-from Dashboard.config import USE_COMPONENT_VIEWER
 from Dashboard.services.ifc_pipeline import preload_sbert_resources
-from Dashboard.services.viewer import ensure_ifclite_viewer
 from Dashboard.services.session_cleanup import start_cleanup_thread
 
 
@@ -46,11 +44,6 @@ def initialize_app_runtime() -> None:
         st.session_state["preloaded_sbert_model"] = st.session_state["selected_sbert_model"]
 
     if "viewer_server_started" not in st.session_state:
-        if not USE_COMPONENT_VIEWER:
-            viewer_root = os.path.join(os.path.dirname(os.path.dirname(__file__)), "ifc-lite")
-            if not os.path.isdir(viewer_root):
-                viewer_root = os.path.join(os.path.dirname(os.path.dirname(__file__)), "ifc-viewer", "ifc-lite")
-            ensure_ifclite_viewer(viewer_root, port=3000)
         st.session_state["viewer_server_started"] = True
 
     if "viewer_selected_guid" not in st.session_state:

@@ -18,29 +18,25 @@ Für weitere Details schau dir dieses Repo an.
 ## Du möchtest das Tool ausprobieren und der Code interessiert dich weniger?
 Dann gehe auf diese Seite: [https://hygroskopisch-ifc-kbob-ai-matcher.hf.space/]
 
-## Experimental: component viewer migration mode
+## Runtime mode
 
-This branch supports a staged no-proxy migration path controlled by
-`VIEWER_EMBED_MODE`:
+This branch runs in no-proxy mode with a single Streamlit entrypoint on
+port `7860`.
 
-- `VIEWER_EMBED_MODE=iframe` (default): legacy nginx + iframe viewer path.
-- `VIEWER_EMBED_MODE=component`: single Streamlit entrypoint on port `7860`
-  without nginx startup.
+Viewer embedding uses the component bridge and serves the frontend via
+Streamlit static delivery (`/app/static/viewer/index.html`).
 
-Current status: component mode now renders the viewer iframe via the
-component path and uses a dedicated component bridge for selection sync.
+Optional overrides for local/testing:
 
-Optional overrides for migration testing:
-
-- `COMPONENT_VIEWER_URL`: base URL of the viewer frontend in component mode.
+- `COMPONENT_VIEWER_URL`: base URL of the viewer frontend.
   Default is `/app/static/viewer/index.html` when Streamlit static delivery is used,
   otherwise `http://localhost:3000/`.
-- `COMPONENT_STATIC_ORIGIN`: absolute origin for IFC static files in component
-  mode (e.g. `http://127.0.0.1:8080`). If unset, defaults are used.
+- `COMPONENT_STATIC_ORIGIN`: absolute origin for IFC static files
+  (e.g. `http://127.0.0.1:8080`). If unset, defaults are used.
 - `COMPONENT_SERVE_MODE`: force delivery mode (`streamlit-static` or
   `viewer-dev-server`). If unset, mode is auto-detected.
 
-Local development tip (component mode with Streamlit static delivery):
+Local development tip:
 
 - Build and sync viewer assets into `Dashboard/static/viewer`:
   `cd Dashboard/ifc-lite && npm run build:streamlit-static`

@@ -2,7 +2,6 @@ import json
 import os
 import socket
 import subprocess
-import shutil
 import sys
 
 import streamlit as st
@@ -21,41 +20,6 @@ def ensure_static_server(static_dir: str, port: int = 8080) -> None:
         [sys.executable, cors_script, static_dir, str(port)],
         stdout=subprocess.DEVNULL,
         stderr=subprocess.DEVNULL,
-    )
-
-
-def ensure_ifclite_viewer(viewer_root: str, port: int = 3000) -> None:
-    if _is_port_in_use(port):
-        return
-    if not os.path.isdir(viewer_root):
-        return
-
-    # If a pre-built dist/ exists (e.g. Docker / HF Spaces), serve it as
-    # static files instead of starting a Vite dev server.
-    dist_dir = os.path.join(viewer_root, "dist")
-    if os.path.isdir(dist_dir):
-        ensure_static_server(dist_dir, port)
-        return
-
-    npm_cmd = shutil.which("npm") or shutil.which("npm.cmd")
-    pnpm_cmd = shutil.which("pnpm") or shutil.which("pnpm.cmd")
-    if not npm_cmd and not pnpm_cmd:
-        return
-    creation_flags = 0
-    if os.name == "nt":
-        creation_flags = subprocess.CREATE_NEW_PROCESS_GROUP
-
-    if npm_cmd:
-        command = [npm_cmd, "run", "dev", "--", "--host", "127.0.0.1", "--port", str(port), "--strictPort"]
-    else:
-        command = [pnpm_cmd, "run", "dev", "--", "--host", "127.0.0.1", "--port", str(port), "--strictPort"]
-
-    subprocess.Popen(
-        command,
-        cwd=viewer_root,
-        stdout=subprocess.DEVNULL,
-        stderr=subprocess.DEVNULL,
-        creationflags=creation_flags,
     )
 
 

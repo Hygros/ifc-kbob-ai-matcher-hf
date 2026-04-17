@@ -8,19 +8,16 @@ CHART_HEIGHT = 700
 # ---------------------------------------------------------------------------
 # Hugging Face Spaces detection
 # ---------------------------------------------------------------------------
-# HF Spaces sets SPACE_ID automatically; when present the app is behind an
-# nginx reverse proxy that exposes the viewer at /viewer/ and static IFC
-# files at /static-ifc/ instead of localhost ports.
+# HF Spaces sets SPACE_ID automatically.
 IS_HF_SPACE: bool = bool(os.environ.get("SPACE_ID"))
 
 
 # ---------------------------------------------------------------------------
 # Viewer runtime mode
 # ---------------------------------------------------------------------------
-# "iframe"  -> legacy mode (nginx + /viewer/ + /static-ifc/ routes)
-# "component" -> no-proxy migration mode (single Streamlit entrypoint)
-VIEWER_EMBED_MODE: str = str(os.environ.get("VIEWER_EMBED_MODE", "iframe")).strip().lower()
-USE_COMPONENT_VIEWER: bool = VIEWER_EMBED_MODE == "component"
+# No-nginx runtime: component mode is the only supported embed mode.
+VIEWER_EMBED_MODE: str = "component"
+USE_COMPONENT_VIEWER: bool = True
 
 
 # ---------------------------------------------------------------------------

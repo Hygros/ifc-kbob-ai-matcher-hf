@@ -1,14 +1,13 @@
 [server]
 headless = true
 address = "0.0.0.0"
-port = 8501
+port = 7860
 fileWatcherType = "none"
-enableCORS = false
+# With XSRF protection enabled, Streamlit enforces CORS handling.
+enableCORS = true
 enableStaticServing = true
-# XSRF protection is disabled because the app runs behind an nginx reverse
-# proxy on Hugging Face Spaces.  The proxy is the single entry-point and
-# already prevents external cross-site requests from reaching Streamlit.
-enableXsrfProtection = false
+# Direct Streamlit serving on HF: keep XSRF protection enabled.
+enableXsrfProtection = true
 
 [browser]
 gatherUsageStats = false
