@@ -7,7 +7,7 @@ Voraussetzung:
 
 1. Space-Remote setzen (einmalig)
 
-git remote add hf-space https://huggingface.co/spaces/Hygroskopisch/ifc-kbob-ai-matcher
+git remote add hf-space https://huggingface.co/spaces/Hygros-LCA/ifc-kbob-ai-matcher
 git remote -v
 
 2. Lokalen Stand pruefen
@@ -37,7 +37,7 @@ git push --force-with-lease origin main:main
 
 6. Build-Logs pruefen
 
-https://huggingface.co/spaces/Hygroskopisch/ifc-kbob-ai-matcher?logs=build
+https://huggingface.co/spaces/Hygros-LCA/ifc-kbob-ai-matcher?logs=build
 
 Hinweis:
 Wenn HF "binary files" meldet, die gemeldeten Pfade mit git filter-repo aus der Historie entfernen oder diese Dateitypen sauber ueber Xet/LFS verwalten.
