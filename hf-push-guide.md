@@ -7,7 +7,7 @@ Voraussetzung:
 
 1. Space-Remote setzen (einmalig)
 
-git remote add hf-space https://huggingface.co/spaces/Hygros-LCA/ifc-kbob-ai-matcher
+git remote add main https://huggingface.co/spaces/Hygros-LCA/ifc-kbob-ai-matcher
 git remote -v
 
 2. Lokalen Stand pruefen
@@ -24,16 +24,16 @@ git filter-repo --force --refs main --invert-paths --path-glob '*.png' --path-gl
 
 git add -A
 git commit -m "update: <kurze beschreibung>"
-git push hf-space main:main
+git push main
 
 Falls der Remote-Branch absichtlich ersetzt werden soll:
 
-git push --force hf-space main:main
+git push --force main
 
 5. GitHub origin angleichen
 
-git fetch origin main
-git push --force-with-lease origin main:main
+git fetch github main
+git push --force-with-lease github main
 
 6. Build-Logs pruefen
 
