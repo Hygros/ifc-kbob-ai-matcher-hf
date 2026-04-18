@@ -24,7 +24,7 @@ git filter-repo --force --refs main --invert-paths --path-glob '*.png' --path-gl
 
 git add -A
 git commit -m "update: <kurze beschreibung>"
-git push main
+git push origin main
 
 Falls der Remote-Branch absichtlich ersetzt werden soll:
 
