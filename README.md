@@ -16,7 +16,7 @@ Dies ist eine vereinfachte bzw für Hugging Face angepasste Version des Repos [i
 Für weitere Details schau dir dieses Repo an.
 
 ## Du möchtest das Tool ausprobieren und der Code interessiert dich weniger?
-Dann gehe auf diese Seite: [https://hygroskopisch-ifc-kbob-ai-matcher.hf.space/]
+Dann gehe auf diese Seite: [https://huggingface.co/spaces/Hygros-LCA/ifc-kbob-ai-matcher]
 
 ## Runtime mode
 
