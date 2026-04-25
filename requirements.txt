@@ -4,4 +4,4 @@ numpy>=2.3.5,<3
 pandas>=2.3,<3
 ifcopenshell>=0.8,<1
 streamlit>=1.54,<2
-plotly>=6.5,<7
+plotly>=6.7.0,<7
